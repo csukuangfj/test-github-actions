@@ -34,7 +34,13 @@ jobs:
         shell: bash
         run: |
           python3 -c "import sherpa_onnx; print(sherpa_onnx.__file__)"
-          ls -lh /c:/hostedtoolcache/windows/Python/3.8.10/x64
-          ls -lh /c:/hostedtoolcache/windows/Python/3.8.10/x64/bin
+          # ls -lh /c:/hostedtoolcache/windows/Python/3.8.10/x64
+          # ls -lh /c:/hostedtoolcache/windows/Python/3.8.10/x64/bin
 
-          sherpa-onnx --help
+          # sherpa-onnx --help
+          #
+      - name: ls
+        shell: cmd
+        run: |
+          dir C:\hostedtoolcache\windows\Python\3.8.10\x64\lib
+          dir C:\hostedtoolcache\windows\Python\3.8.10\x64\bin
