@@ -44,3 +44,5 @@ jobs:
         run: |
           dir C:\hostedtoolcache\windows\Python\3.8.10\x64\lib
           dir C:\hostedtoolcache\windows\Python\3.8.10\x64\bin
+          set path=C:\hostedtoolcache\windows\Python\3.8.10\x64\bin
+          sherpa-onnx-offline --help
