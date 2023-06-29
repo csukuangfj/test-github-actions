@@ -34,6 +34,6 @@ jobs:
           make
 
           ls -lh objs
-          ls -lh srcs
+          ls -lh objs/srcs
 
           tree ./objs
