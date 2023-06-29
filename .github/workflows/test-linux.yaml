@@ -1,0 +1,39 @@
+name: ubuntu
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  ubuntu:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8"]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download ossrs
+        shell: bash
+        run: |
+          git clone -b 4.0release https://gitee.com/ossrs/srs.git
+          cd srs/trunk
+          ./configure
+          make
+
+          ls -lh objs
+          ls -lh srcs
+
+          tree ./objs
