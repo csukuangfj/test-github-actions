@@ -1,0 +1,21 @@
+name: test-docker
+
+on:
+  push:
+    branches:
+      - test-docker
+jobs:
+  test_docker:
+    name: Test docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run the build process with Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
+          run: |
+            ls -lh
+            uname -a
+            which nvcc
+            nvcc --version
+
