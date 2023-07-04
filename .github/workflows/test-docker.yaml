@@ -8,10 +8,14 @@ jobs:
   test_docker:
     name: Test docker
     runs-on: ubuntu-latest
-    container: nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
     steps:
-      - name: Run the build process with Docker
+      - name: Clone triton server
         shell: bash
         run: |
-          ls -lh
-          which nvcc
+          git clone https://github.com/triton-inference-server/server
+
+      - name: Dry run
+        shell: bash
+        run: |
+          cd server
+          ./build.py -v --enable-all
