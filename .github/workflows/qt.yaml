@@ -1,4 +1,4 @@
-name: ubuntu
+name: qt
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  ubuntu:
+  qt:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
