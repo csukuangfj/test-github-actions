@@ -20,7 +20,8 @@ jobs:
       - name: Checkout k2
         uses: actions/checkout@v2
         with:
-          repository: k2-fsa/k2
+          # repository: k2-fsa/k2
+          repository: csukuangfj/k2
           ref: w
 
       # see https://cibuildwheel.readthedocs.io/en/stable/changelog/
