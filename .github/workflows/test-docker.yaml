@@ -53,4 +53,6 @@ jobs:
 
               nvcc --version
 
+              python3 -m torch.utils.collect_env
+
 
