@@ -21,13 +21,14 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: k2-fsa/k2
+          ref: w
 
       # see https://cibuildwheel.readthedocs.io/en/stable/changelog/
       # for a list of versions
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.11.4
         env:
-          CIBW_BEFORE_BUILD: "ls -lh; export cuda=10.2; export torch=1.10.0;scripts/github_actions/install_cuda.sh;scripts/github_actions/install_cudnn.sh;scripts/github_actions/install_torch.sh"
+          CIBW_BEFORE_BUILD: "ls -lh; ./install.sh"
           CIBW_SKIP: "cp27-* cp35-* cp36-* *-win32 pp* *-musllinux* *-manylinux_i686"
           CIBW_BUILD_VERBOSITY: 3
 
