@@ -31,7 +31,7 @@ jobs:
               id
 
               apt update
-              apt-get install -y git curl
+              apt-get install -y git curl sudo
               git --version
 
               git clone --depth 1 https://github.com/k2-fsa/k2
