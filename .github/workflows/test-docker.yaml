@@ -30,8 +30,8 @@ jobs:
               uname -a
               id
 
-              apt update
-              apt-get install -y git curl sudo libxml2 build-essential
+              apt update -qq
+              apt-get install -qq -y git curl sudo libxml2 build-essential python3.8
               git --version
 
               gcc --version
@@ -40,6 +40,11 @@ jobs:
 
               export cuda=10.2
               ./k2/scripts/github_actions/install_cuda.sh
+              ./k2/scripts/github_actions/install_cudnn.sh
+
+              export torch=1.10.0
+              ./k2/scripts/github_actions/install_torch.sh
+
 
               export CUDA_HOME=/usr/local/cuda
               export PATH=$CUDA_HOME/bin:$PATH
