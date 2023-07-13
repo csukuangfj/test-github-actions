@@ -31,7 +31,7 @@ jobs:
               id
 
               apt update
-              apt-get install -y git curl sudo limxml2
+              apt-get install -y git curl sudo libxml2
               git --version
 
               git clone --depth 1 https://github.com/k2-fsa/k2
