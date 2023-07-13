@@ -36,7 +36,7 @@ jobs:
 
               git clone --depth 1 https://github.com/k2-fsa/k2
 
-              cuda=10.2
+              export cuda=10.2
               ./k2/scripts/github_actions/install_cuda.sh
 
               export CUDA_HOME=/usr/local/cuda
