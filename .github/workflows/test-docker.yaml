@@ -31,7 +31,7 @@ jobs:
               id
 
               apt update
-              apt-get install -y git curl sudo libxml2
+              apt-get install -y git curl sudo libxml2 build-essential
               git --version
 
               gcc --version
