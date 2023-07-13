@@ -28,6 +28,11 @@ jobs:
             options: -v ${{ github.workspace }}:/var/www
             run: |
               uname -a
+
+              sudo apt update
+              sudo apt-get install git
+              git --version
+
               git clone --depth 1 https://github.com/k2-fsa/k2
 
               cuda=10.2
