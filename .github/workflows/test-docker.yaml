@@ -24,9 +24,20 @@ jobs:
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
-            image: ubuntu:16.04
-            # options: -v ${{ github.workspace }}:/var/www
+            image: ubuntu:18.04
+            options: -v ${{ github.workspace }}:/var/www
             run: |
               uname -a
+              git clone --depth 1 https://github.com/k2-fsa/k2
+
+              cuda=10.2
+              ./k2/scripts/github_actions/install_cuda.sh
+
+              export CUDA_HOME=/usr/local/cuda
+              export PATH=$CUDA_HOME/bin:$PATH
+              export LD_LIBRARY_PATH=$CUDA_HOME/lib:$LD_LIBRARY_PATH
+              export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
+              nvcc --version
 
 
