@@ -1,4 +1,4 @@
-name: test-docker
+name: test-cibuildwheel
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - docker
 
 jobs:
-  ubuntu:
+  cibuildwheel:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
