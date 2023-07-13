@@ -71,5 +71,23 @@ jobs:
               nvcc --version
 
               python3 -m torch.utils.collect_env
+              cd k2
+              export K2_IS_FOR_PYPI=1
+              export K2_IS_STABLE=1
 
+              tag=$(python3 -c "import sys; print('.'.join(sys.version.split('.')[:2]))")
+              export K2_CMAKE_ARGS="-DCMAKE_BUILD_TYPE=$BUILD_TYPE"
+              export K2_MAKE_ARGS="-j2"
+              python3 setup.py bdist_wheel --python-tag=py${tag}
+              ls -lh dist/
+              mv dist/*.whl /var/www/
 
+      - name: Display
+        shell: bash
+        run: |
+          ls -lh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: ./*.whl
