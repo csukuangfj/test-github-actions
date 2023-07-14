@@ -24,7 +24,7 @@ jobs:
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
-            image: pytorch/manylinux-builder:cuda10.2
+            image: pytorch/manylinux-builder:cuda102
             options: -v ${{ github.workspace }}:/var/www
             run: |
               uname -a
