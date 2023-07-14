@@ -21,26 +21,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      # see https://github.com/pytorch/test-infra/blob/9e3d392690719fac85bad0c9b67f530e48375ca1/tools/scripts/generate_binary_build_matrix.py
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
-            image: pytorch/manylinux-builder:cuda102
+            image: pytorch/manylinux-builder:cuda10.2
             options: -v ${{ github.workspace }}:/var/www
             run: |
               uname -a
               id
-              set -e
               gcc --version
               nvcc --version
-              python3 -version
+              python3 --version
 
+            git clone https://github.com/k2-fsa/k2
+            python3 setup.py bdist_wheel
+            cp ./dist/*.whl /var/www
 
-      # - name: Display
-      #   shell: bash
-      #   run: |
-      #     ls -lh
-      #
-      # - uses: actions/upload-artifact@v2
-      #   with:
-      #     name: wheels
-      #     path: ./*.whl
+      - name: Display
+        shell: bash
+        run: |
+          ls -lh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: ./*.whl
