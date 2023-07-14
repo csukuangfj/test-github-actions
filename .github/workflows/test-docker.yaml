@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - docker
 
 jobs:
   ubuntu:
@@ -23,75 +24,23 @@ jobs:
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
-            image: ubuntu:18.04
+            image: pytorch/manylinux-builder:cuda10.2
             options: -v ${{ github.workspace }}:/var/www
             run: |
               uname -a
               id
               set -e
-
-              apt update -qq
-              apt-get install -qq -y git curl sudo libxml2 build-essential software-properties-common git-lfs
-              add-apt-repository ppa:deadsnakes/ppa -y
-              apt install -qq python3.8 python3.8-distutils python3.8-dev -y
-              which python3.8
-              find / -name libpython*.so 2>/dev/null
-              find / -name Python.h 2>/dev/null
-
-              python3 --version
-
-              cp /usr/bin/python3.8 /usr/bin/python3
-
-              python3 --version
-
-              curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
-              python3 ./get-pip.py
-
-              python3 --version
-
-              python3 -m pip install --upgrade pip
-              python3 -m pip install wheel twine typing_extensions
-              python3 -m pip install bs4 requests tqdm cmake
-
-              git --version
-
               gcc --version
-
-              git clone --depth 1 https://github.com/k2-fsa/k2
-
-              export cuda=10.2
-              ./k2/scripts/github_actions/install_cuda.sh
-              ./k2/scripts/github_actions/install_cudnn.sh
-
-              export torch=1.10.0
-              ./k2/scripts/github_actions/install_torch.sh
-
-
-              export CUDA_HOME=/usr/local/cuda
-              export PATH=$CUDA_HOME/bin:$PATH
-              export LD_LIBRARY_PATH=$CUDA_HOME/lib:$LD_LIBRARY_PATH
-              export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-
               nvcc --version
+              python3 -version
 
-              python3 -m torch.utils.collect_env
-              cd k2
-              export K2_IS_FOR_PYPI=1
-              export K2_IS_STABLE=1
 
-              tag=$(python3 -c "import sys; print('.'.join(sys.version.split('.')[:2]))")
-              export K2_CMAKE_ARGS="-DCMAKE_BUILD_TYPE=$BUILD_TYPE"
-              export K2_MAKE_ARGS="-j2"
-              python3 setup.py bdist_wheel --python-tag=py${tag}
-              ls -lh dist/
-              mv dist/*.whl /var/www/
-
-      - name: Display
-        shell: bash
-        run: |
-          ls -lh
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: wheels
-          path: ./*.whl
+      # - name: Display
+      #   shell: bash
+      #   run: |
+      #     ls -lh
+      #
+      # - uses: actions/upload-artifact@v2
+      #   with:
+      #     name: wheels
+      #     path: ./*.whl
