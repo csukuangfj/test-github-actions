@@ -34,8 +34,11 @@ jobs:
               nvcc --version
               python3 --version
 
+              cat /etc/*release
+
               git clone --depth 1 https://github.com/k2-fsa/k2
               cd k2
+              python3 -m pip install
               python3 setup.py bdist_wheel
               cp ./dist/*.whl /var/www
 
