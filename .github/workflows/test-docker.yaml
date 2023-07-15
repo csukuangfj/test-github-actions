@@ -34,6 +34,9 @@ jobs:
               cat /etc/*release
               gcc --version
               nvcc --version
+              which nvcc
+              which gcc
+              ls -lh /usr/local
               python3 --version
               which python3
 
