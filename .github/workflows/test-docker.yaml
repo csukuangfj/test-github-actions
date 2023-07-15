@@ -56,7 +56,12 @@ jobs:
 
               git clone --depth 1 https://github.com/k2-fsa/k2
               cd k2
+              python3 -m pip install -U pip
               python3 -m pip install torch==1.10.0 cmake
+              python3 -m pip install --force-reinstall typing-extensions==4.5.0
+              python3 -m pip install wheel twine typing_extensions
+              python3 -m pip install bs4 requests tqdm
+
               python3 setup.py bdist_wheel
               cp ./dist/*.whl /var/www
 
