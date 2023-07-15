@@ -67,6 +67,7 @@ jobs:
               python3 -m pip install bs4 requests tqdm
 
               export CMAKE_CUDA_COMPILER_LAUNCHER=
+              export K2_CMAKE_ARGS=" -DPYTHON_EXECUTABLE=/Python-3.8.16/py38/bin/python3 "
               python3 setup.py bdist_wheel
               cp ./dist/*.whl /var/www
 
