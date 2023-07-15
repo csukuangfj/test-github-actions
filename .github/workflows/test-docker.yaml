@@ -73,6 +73,10 @@ jobs:
               python3 setup.py bdist_wheel
               cp ./dist/*.whl /var/www
 
+              cd /usr/local/cuda/lib64
+              ln -s /usr/local/cuda/targets/x86_64-linux/lib/stubs/libcuda.so libcuda.so.1
+              auditwheel repair --plat manylinux_2_17_x86_64 -w ./var/www ./dist/*.whl
+
       - name: Display
         shell: bash
         run: |
