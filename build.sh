@@ -31,7 +31,7 @@ curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VE
 tar xf Python-${PYTHON_VERSION}.1.tgz
 pushd Python-${PYTHON_VERSION}.1
 
-if [[ ${PYTHON_VERSION} =~ 3.1. ]] then
+if [[ ${PYTHON_VERSION} =~ 3.1. ]]; then
   # for Python >= 3.10, see https://github.com/pyenv/pyenv/issues/2416
   # https://github.com/tiran/cpython_builddep/blob/1c510950edd947eee9233a023d5ff5fecc96889a/README.md#note
   yum install -y openssl11-devel
