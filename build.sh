@@ -41,6 +41,7 @@ fi
 PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
 ./configure --enable-optimizations --enable-shared --prefix=$PYTHON_INSTALL_DIR
 make install
+make clean
 
 export PATH=$PYTHON_INSTALL_DIR/bin:$PATH
 export LD_LIBRARY_PATH=$PYTHON_INSTALL_DIR/lib:$LD_LIBRARY_PATH
@@ -60,6 +61,9 @@ python3 -m pip install bs4 requests tqdm
 
 echo "Installing torch"
 ./install_torch.sh
+
+python3 -m pip cache remove *
+yum clean all
 
 echo "Downloading k2"
 git clone --depth 1 https://github.com/k2-fsa/k2
