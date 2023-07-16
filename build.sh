@@ -43,6 +43,9 @@ popd
 python3 --version
 which python3
 
+curl -O https://bootstrap.pypa.io/get-pip.py
+python3 get-pip.py
+
 python3 -m pip install -U pip cmake
 # python3 -m pip install torch==${TORCH_VERSION} cmake
 python3 -m pip install wheel twine typing_extensions

@@ -59,6 +59,11 @@ jobs:
               python3 --version
               which python3
               cp /var/www/*.sh .
+
+              pushd /usr/local
+              rm cuda
+              ln -s cuda-$CUDA_VERSION cuda
+
               ./build.sh
 
       - name: Display
