@@ -25,7 +25,7 @@ fi
 
 echo "Installing ${PYTHON_VERSION}.1"
 
-yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget
+yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget redhat-lsb-core
 
 curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VERSION}.1.tgz
 tar xf Python-${PYTHON_VERSION}.1.tgz
