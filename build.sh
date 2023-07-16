@@ -41,7 +41,6 @@ fi
 PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
 ./configure --enable-optimizations --enable-shared --prefix=$PYTHON_INSTALL_DIR
 make install
-make clean
 
 export PATH=$PYTHON_INSTALL_DIR/bin:$PATH
 export LD_LIBRARY_PATH=$PYTHON_INSTALL_DIR/lib:$LD_LIBRARY_PATH
