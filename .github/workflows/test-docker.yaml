@@ -63,6 +63,7 @@ jobs:
               pushd /usr/local
               rm cuda
               ln -s cuda-$CUDA_VERSION cuda
+              popd
 
               ./build.sh
 
