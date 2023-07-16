@@ -89,7 +89,7 @@ jobs:
           GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/csukuangfj/k2 huggingface
 
           cd huggingface
-          git lfs pull
+          git pull
           cp -v ../*.whl ./cuda
           git status
           git lfs track "*.whl"
