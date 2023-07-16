@@ -20,8 +20,8 @@ jobs:
         id: set-matrix
         run: |
           # outputting for debugging purposes
-          python scripts/github_actions/generate_build_matrix.py --enable-cuda
-          MATRIX=$(python scripts/github_actions/generate_build_matrix.py --enable-cuda)
+          python ./generate_build_matrix.py --enable-cuda
+          MATRIX=$(python ./generate_build_matrix.py --enable-cuda)
           echo "::set-output name=matrix::${MATRIX}"
   build-manylinux-wheels:
     needs: generate_build_matrix
