@@ -79,4 +79,4 @@ auditwheel repair \
   --exclude libtorch_python.so \
   --plat manylinux_2_17_x86_64 \
   -w ../var/www \
-  *.whl
+  dist/*.whl
