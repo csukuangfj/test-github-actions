@@ -58,6 +58,7 @@ jobs:
               ls -lh /usr/local
               python3 --version
               which python3
+              cp /var/www/*.sh .
               ./build.sh
 
       - name: Display
