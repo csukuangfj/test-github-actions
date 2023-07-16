@@ -7,14 +7,29 @@ on:
       - docker
 
 jobs:
-  ubuntu:
-    runs-on: ${{ matrix.os }}
+  generate_build_matrix:
+    # see https://github.com/pytorch/pytorch/pull/50633
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Generating build matrix
+        id: set-matrix
+        run: |
+          # outputting for debugging purposes
+          python scripts/github_actions/generate_build_matrix.py --enable-cuda
+          MATRIX=$(python scripts/github_actions/generate_build_matrix.py --enable-cuda)
+          echo "::set-output name=matrix::${MATRIX}"
+  build-manylinux-wheels:
+    needs: generate_build_matrix
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        # python-version: ["3.7", "3.8", "3.9", "3.10"]
-        python-version: ["3.8"]
+        ${{ fromJson(needs.generate_build_matrix.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v2
@@ -29,8 +44,8 @@ jobs:
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
-            image: pytorch/manylinux-builder:cuda10.2
-            options: -v ${{ github.workspace }}:/var/www
+            image: ${{ matirx.image }}
+            options: -v ${{ github.workspace }}:/var/www -e PYTHON_VERSION=${{ matrix.python-version }} -e TORCH_VERSION=${{ matrix.torch }} -e CUDA_VERSION=${{ matrix.cuda }}
             run: |
               echo "pwd: $PWD"
               uname -a
@@ -43,56 +58,7 @@ jobs:
               ls -lh /usr/local
               python3 --version
               which python3
-
-              yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget
-
-              wget -qq https://www.python.org/ftp/python/3.8.16/Python-3.8.16.tgz
-              tar xf Python-3.8.16.tgz
-              cd Python-3.8.*
-              ./configure --enable-optimizations --enable-shared --prefix=$PWD/py38
-              make install
-
-              ls -lh $PWD/py38
-              ls -lh $PWD/py38/lib
-              ls -lh $PWD/py38/bin
-
-              export PATH=$PWD/py38/bin:$PATH
-              export LD_LIBRARY_PATH=$PWD/py38/lib:$LD_LIBRARY_PATH
-
-              python3 --version
-              cd ../
-
-              git clone --depth 1 https://github.com/k2-fsa/k2
-              cd k2
-              python3 -m pip install -U pip
-              python3 -m pip install torch==1.10.0 cmake
-              python3 -m pip install --force-reinstall typing-extensions==4.5.0
-              python3 -m pip install wheel twine typing_extensions
-              python3 -m pip install bs4 requests tqdm
-
-              export CMAKE_CUDA_COMPILER_LAUNCHER=
-              export K2_CMAKE_ARGS=" -DPYTHON_EXECUTABLE=/Python-3.8.16/py38/bin/python3 "
-              export K2_MAKE_ARGS=" -j1 "
-
-              python3 setup.py bdist_wheel
-
-              cp ./dist/*.whl /var/www
-
-              auditwheel repair --plat manylinux_2_17_x86_64 -w ../var/www ./dist/*.whl
-              auditwheel repair \
-                --exclude libc10.so \
-                --exclude libc10_cuda.so \
-                --exclude libcuda.so.1 \
-                --exclude libcudart.so.10.2 \
-                --exclude libnvToolsExt.so.1 \
-                --exclude libnvrtc.so.10.2 \
-                --exclude libtorch.so \
-                --exclude libtorch_cpu.so \
-                --exclude libtorch_cuda.so \
-                --exclude libtorch_python.so \
-                --plat manylinux_2_17_x86_64 \
-                -w ./abc \
-                *.whl
+              ./build.sh
 
       - name: Display
         shell: bash
@@ -103,3 +69,27 @@ jobs:
         with:
           name: wheels
           path: ./*.whl
+
+      # https://huggingface.co/docs/hub/spaces-github-actions
+      - name: Publish to huggingface
+        if: github.repository_owner == 'csukuangfj'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "csukuangfj@gmail.com"
+          git config --global user.name "Fangjun Kuang"
+
+          GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/csukuangfj/k2 huggingface
+
+          cd huggingface
+          git lfs pull
+          cp -v ../*.whl ./cuda
+          git status
+          git lfs track "*.whl"
+
+          git add .
+
+          git commit -m "upload cuda wheel"
+          git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/k2 main
+          cd ..
+          rm -rf huggingface
