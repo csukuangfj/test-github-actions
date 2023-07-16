@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      # - docker
+      - docker
 
 jobs:
   ubuntu:
@@ -22,6 +22,10 @@ jobs:
           fetch-depth: 0
 
       # see https://github.com/pytorch/test-infra/blob/9e3d392690719fac85bad0c9b67f530e48375ca1/tools/scripts/generate_binary_build_matrix.py
+      # https://github.com/pytorch/builder/tree/main/manywheel
+      # https://github.com/pytorch/builder/pull/476
+      # https://github.com/k2-fsa/k2/issues/733
+      # https://github.com/pytorch/pytorch/pull/50633  (generate build matrix)
       - name: Run the build process with Docker
         uses: addnab/docker-run-action@v3
         with:
@@ -71,12 +75,24 @@ jobs:
               export K2_MAKE_ARGS=" -j1 "
 
               python3 setup.py bdist_wheel
+
               cp ./dist/*.whl /var/www
 
-              pushd /usr/local/cuda/lib64
-              ln -s /usr/local/cuda/targets/x86_64-linux/lib/stubs/libcuda.so libcuda.so.1
-              popd
-              auditwheel repair --plat manylinux_2_17_x86_64 -w ./var/www ./dist/*.whl
+              auditwheel repair --plat manylinux_2_17_x86_64 -w ../var/www ./dist/*.whl
+              auditwheel repair \
+                --exclude libc10.so \
+                --exclude libc10_cuda.so \
+                --exclude libcuda.so.1 \
+                --exclude libcudart.so.10.2 \
+                --exclude libnvToolsExt.so.1 \
+                --exclude libnvrtc.so.10.2 \
+                --exclude libtorch.so \
+                --exclude libtorch_cpu.so \
+                --exclude libtorch_cuda.so \
+                --exclude libtorch_python.so \
+                --plat manylinux_2_17_x86_64 \
+                -w ./abc \
+                *.whl
 
       - name: Display
         shell: bash
