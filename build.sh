@@ -61,7 +61,7 @@ python3 -m pip install bs4 requests tqdm
 echo "Installing torch"
 ./install_torch.sh
 
-python3 -m pip cache remove *
+rm -rf ~/.cache/pip
 yum clean all
 
 echo "Downloading k2"
