@@ -27,25 +27,43 @@ echo "Installing ${PYTHON_VERSION}.1"
 
 yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget redhat-lsb-core
 
-curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VERSION}.1.tgz
-tar xf Python-${PYTHON_VERSION}.1.tgz
-pushd Python-${PYTHON_VERSION}.1
+if [[ ${PYTHON_VERSION} =~ 3.6. ]]; then
+  curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VERSION}.1.tgz
+  tar xf Python-${PYTHON_VERSION}.1.tgz
+  pushd Python-${PYTHON_VERSION}.1
 
-if [[ ${PYTHON_VERSION} =~ 3.1. ]]; then
-  # for Python >= 3.10, see https://github.com/pyenv/pyenv/issues/2416
-  # https://github.com/tiran/cpython_builddep/blob/1c510950edd947eee9233a023d5ff5fecc96889a/README.md#note
-  yum install -y openssl11-devel
-  sed -i 's/PKG_CONFIG openssl /PKG_CONFIG openssl11 /g' configure
+  PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
+  ./configure --enable-optimizations --enable-shared --prefix=$PYTHON_INSTALL_DIR
+  make install
+
+
+  popd
+else
+  case $PYTHON_VERSION in
+    3.7)
+      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.7.5
+      ;;
+    3.8)
+      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.8.1
+      ;;
+    3.9)
+      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.9.0
+      ;;
+    3.10)
+      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.10.1
+      ;;
+    3.11)
+      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.11.0
+      ;;
+    *)
+      echo "Unsupported Python version: ${PYTHON_VERSION}"
+      exit 1
+      ;;
+  esac
 fi
-
-PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
-./configure --enable-optimizations --enable-shared --prefix=$PYTHON_INSTALL_DIR
-make install
 
 export PATH=$PYTHON_INSTALL_DIR/bin:$PATH
 export LD_LIBRARY_PATH=$PYTHON_INSTALL_DIR/lib:$LD_LIBRARY_PATH
-
-popd
 
 python3 --version
 which python3
@@ -54,7 +72,6 @@ curl -O https://bootstrap.pypa.io/get-pip.py
 python3 get-pip.py
 
 python3 -m pip install -U pip cmake
-# python3 -m pip install torch==${TORCH_VERSION} cmake
 python3 -m pip install wheel twine typing_extensions
 python3 -m pip install bs4 requests tqdm auditwheel
 
