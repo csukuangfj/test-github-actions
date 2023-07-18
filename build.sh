@@ -27,28 +27,27 @@ echo "Installing ${PYTHON_VERSION}.1"
 
 yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget redhat-lsb-core
 
-if [[ ${PYTHON_VERSION} == 3.6 ]]; then
+if [[ ! ${PYTHON_VERSION} =~ 3.1. ]] ||; then
   curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VERSION}.1.tgz
   tar xf Python-${PYTHON_VERSION}.1.tgz
   pushd Python-${PYTHON_VERSION}.1
 
   PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
-  ./configure --enable-optimizations --enable-shared --prefix=$PYTHON_INSTALL_DIR
+  ./configure --enable-shared --prefix=$PYTHON_INSTALL_DIR
   make install
-
 
   popd
 else
   case $PYTHON_VERSION in
-    3.7)
-      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.7.5
-      ;;
-    3.8)
-      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.8.1
-      ;;
-    3.9)
-      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.9.0
-      ;;
+    # 3.7)
+    #   PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.7.5
+    #   ;;
+    # 3.8)
+    #   PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.8.1
+    #   ;;
+    # 3.9)
+    #   PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.9.0
+    #   ;;
     3.10)
       PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.10.1
       ;;
@@ -64,6 +63,7 @@ fi
 
 export PATH=$PYTHON_INSTALL_DIR/bin:$PATH
 export LD_LIBRARY_PATH=$PYTHON_INSTALL_DIR/lib:$LD_LIBRARY_PATH
+ls -lh $PYTHON_INSTALL_DIR/lib/
 
 python3 --version
 which python3
@@ -86,7 +86,7 @@ git clone --depth 1 https://github.com/k2-fsa/k2
 cd k2
 
 export CMAKE_CUDA_COMPILER_LAUNCHER=
-export K2_CMAKE_ARGS=" -DPYTHON_EXECUTABLE=$PYTHON_INSTALL_DIR/bin/python3 "
+export K2_CMAKE_ARGS=" -DPYTHON_EXECUTABLE=$PYTHON_INSTALL_DIR/bin/python3 -DPYTHON_LIBRARY=$PYTHON_INSTALL_DIR/lib/libpython$PYTHON_VERSION.so "
 export K2_MAKE_ARGS=" -j2 "
 
 python3 setup.py bdist_wheel
