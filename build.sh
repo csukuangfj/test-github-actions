@@ -56,7 +56,7 @@ python3 get-pip.py
 python3 -m pip install -U pip cmake
 # python3 -m pip install torch==${TORCH_VERSION} cmake
 python3 -m pip install wheel twine typing_extensions
-python3 -m pip install bs4 requests tqdm
+python3 -m pip install bs4 requests tqdm auditwheel
 
 echo "Installing torch"
 ./install_torch.sh
@@ -74,9 +74,9 @@ export K2_MAKE_ARGS=" -j2 "
 
 python3 setup.py bdist_wheel
 
-cp ./dist/*.whl /var/www
+# cp ./dist/*.whl /var/www
 
-auditwheel repair \
+auditwheel --verbose repair \
   --exclude libc10.so \
   --exclude libc10_cuda.so \
   --exclude libcuda.so.1 \
@@ -87,6 +87,14 @@ auditwheel repair \
   --exclude libtorch_cpu.so \
   --exclude libtorch_cuda.so \
   --exclude libtorch_python.so \
+  \
+  --exclude libcudnn.so.8 \
+  --exclude libcublas.so.11 \
+  --exclude libcublasLt.so.11 \
+  --exclude libcudart.so.11.0 \
+  --exclude libnvrtc.so.11.2 \
+  --exclude libtorch_cuda_cu.so \
+  --exclude libtorch_cuda_cpp.so \
   --plat manylinux_2_17_x86_64 \
   -w ../var/www \
   dist/*.whl
