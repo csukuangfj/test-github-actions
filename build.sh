@@ -27,7 +27,7 @@ echo "Installing ${PYTHON_VERSION}.1"
 
 yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget redhat-lsb-core
 
-if [[ ! ${PYTHON_VERSION} =~ 3.1. ]] ||; then
+if [[ ! ${PYTHON_VERSION} =~ 3.1. ]]; then
   curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VERSION}.1.tgz
   tar xf Python-${PYTHON_VERSION}.1.tgz
   pushd Python-${PYTHON_VERSION}.1
