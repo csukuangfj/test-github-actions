@@ -28,8 +28,7 @@ PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
 
 if [[ $PYTHON_VERSION =~ 3.1. ]]; then
   yum -y install openssl11-libs openssl-devel
-  export CFLAGS="$CFLAGS $(pkg-config --cflags openssl11)"
-  export LDFLAGS="$LDFLAGS $(pkg-config --libs openssl11)"
+  sed -i 's/PKG_CONFIG openssl /PKG_CONFIG openssl11 /g' configure
 fi
 
 ./configure --enable-shared --prefix=$PYTHON_INSTALL_DIR
