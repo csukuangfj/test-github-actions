@@ -27,7 +27,7 @@ pushd Python-${PYTHON_VERSION}.1
 PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
 
 if [[ $PYTHON_VERSION =~ 3.1. ]]; then
-  yum -y install openssl11-libs openssl-devel
+  yum install -y openssl11-devel
   sed -i 's/PKG_CONFIG openssl /PKG_CONFIG openssl11 /g' configure
 fi
 
