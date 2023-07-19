@@ -10,13 +10,6 @@ if [ -z $PYTHON_VERSION ]; then
   exit 1
 fi
 
-if [ -z $CUDA_VERSION ]; then
-  echo "Please set the environment variable CUDA_VERSION"
-  echo "Example: export CUDA_VERSION=10.2"
-  # valid values: 10.2, 11.1, 11.3, 11.6, 11.7, 11.8
-  exit 1
-fi
-
 if [ -z $TORCH_VERSION ]; then
   echo "Please set the environment variable TORCH_VERSION"
   echo "Example: export TORCH_VERSION=1.10.0"
@@ -68,8 +61,10 @@ ls -lh $PYTHON_INSTALL_DIR/lib/
 python3 --version
 which python3
 
-curl -O https://bootstrap.pypa.io/get-pip.py
-python3 get-pip.py
+if [[ $PYTHON_VERSION != 3.6 ]]; then
+  curl -O https://bootstrap.pypa.io/get-pip.py
+  python3 get-pip.py
+fi
 
 python3 -m pip install -U pip cmake
 python3 -m pip install wheel twine typing_extensions
