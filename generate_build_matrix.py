@@ -144,7 +144,15 @@ def generate_build_matrix(enable_cuda, test_only_latest_torch):
                     )
         else:
             for p in python_versions:
-                ans.append({"torch": torch, "python-version": p})
+                if p in excluded_python_versions:
+                    continue
+                ans.append(
+                    {
+                        "torch": torch,
+                        "python-version": p,
+                        "image": f"pytorch/manylinux-builder:cuda10.2",
+                    }
+                )
 
     print(json.dumps({"include": ans}))
 

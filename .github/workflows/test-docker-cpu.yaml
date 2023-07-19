@@ -1,9 +1,10 @@
-name: test-docker
+name: test-docker-cpu
 
 on:
   push:
     branches:
       - master
+      - docker
 
 jobs:
   generate_build_matrix:
@@ -19,8 +20,8 @@ jobs:
         id: set-matrix
         run: |
           # outputting for debugging purposes
-          python ./generate_build_matrix.py --enable-cuda
-          MATRIX=$(python ./generate_build_matrix.py --enable-cuda)
+          python ./generate_build_matrix.py
+          MATRIX=$(python ./generate_build_matrix.py)
           echo "::set-output name=matrix::${MATRIX}"
   build-manylinux-wheels:
     needs: generate_build_matrix
@@ -51,20 +52,11 @@ jobs:
               id
               cat /etc/*release
               gcc --version
-              nvcc --version
-              which nvcc
-              which gcc
-              ls -lh /usr/local
               python3 --version
               which python3
               cp /var/www/*.sh .
 
-              pushd /usr/local
-              rm cuda
-              ln -s cuda-$CUDA_VERSION cuda
-              popd
-
-              ./build.sh
+              ./build-cpu.sh
 
       - name: Display
         shell: bash
@@ -89,7 +81,7 @@ jobs:
 
           cd huggingface
           git pull
-          cp -v ../*.whl ./cuda
+          cp -v ../*.whl ./cpu
           git status
           git lfs track "*.whl"
 
