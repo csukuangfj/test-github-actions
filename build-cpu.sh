@@ -49,7 +49,7 @@ if [[ $PYTHON_VERSION != 3.6 ]]; then
   python3 get-pip.py
 fi
 
-python3 -m pip scikit-build
+python3 -m pip install scikit-build
 python3 -m pip install -U pip cmake
 python3 -m pip install wheel twine typing_extensions
 python3 -m pip install bs4 requests tqdm auditwheel
