@@ -118,7 +118,7 @@ def generate_build_matrix(enable_cuda, test_only_latest_torch):
 
     excluded_python_versions = []
     enabled_cuda_versions = ["10.2", "11.6", "11.7", "11.8"]
-    enabled_python_versions = ["3.6"]
+    enabled_python_versions = ["3.11"]
 
     ans = []
     for torch, python_cuda in matrix.items():
