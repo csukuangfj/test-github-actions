@@ -20,39 +20,22 @@ echo "Installing ${PYTHON_VERSION}.1"
 
 yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget redhat-lsb-core
 
-if [[ ! ${PYTHON_VERSION} =~ 3.1. ]]; then
-  curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VERSION}.1.tgz
-  tar xf Python-${PYTHON_VERSION}.1.tgz
-  pushd Python-${PYTHON_VERSION}.1
+curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}.1/Python-${PYTHON_VERSION}.1.tgz
+tar xf Python-${PYTHON_VERSION}.1.tgz
+pushd Python-${PYTHON_VERSION}.1
 
-  PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
-  ./configure --enable-shared --prefix=$PYTHON_INSTALL_DIR
-  make install
+PYTHON_INSTALL_DIR=$PWD/py-${PYTHON_VERSION}
 
-  popd
-else
-  case $PYTHON_VERSION in
-    # 3.7)
-    #   PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.7.5
-    #   ;;
-    # 3.8)
-    #   PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.8.1
-    #   ;;
-    # 3.9)
-    #   PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.9.0
-    #   ;;
-    3.10)
-      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.10.1
-      ;;
-    3.11)
-      PYTHON_INSTALL_DIR=/opt/_internal/cpython-3.11.0
-      ;;
-    *)
-      echo "Unsupported Python version: ${PYTHON_VERSION}"
-      exit 1
-      ;;
-  esac
+if [[ $PYTHON_VERSION =~ 3.1. ]]; then
+  yum -y install openssl11-libs openssl-devel
+  export CFLAGS="$CFLAGS $(pkg-config --cflags openssl11)"
+  export LDFLAGS="$LDFLAGS $(pkg-config --libs openssl11)"
 fi
+
+./configure --enable-shared --prefix=$PYTHON_INSTALL_DIR
+make install
+
+popd
 
 export PATH=$PYTHON_INSTALL_DIR/bin:$PATH
 export LD_LIBRARY_PATH=$PYTHON_INSTALL_DIR/lib:$LD_LIBRARY_PATH
@@ -66,6 +49,7 @@ if [[ $PYTHON_VERSION != 3.6 ]]; then
   python3 get-pip.py
 fi
 
+python3 -m pip scikit-build
 python3 -m pip install -U pip cmake
 python3 -m pip install wheel twine typing_extensions
 python3 -m pip install bs4 requests tqdm auditwheel
