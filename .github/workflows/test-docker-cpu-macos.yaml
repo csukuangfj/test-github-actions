@@ -67,8 +67,7 @@ jobs:
 
       # https://huggingface.co/docs/hub/spaces-github-actions
       - name: Publish to huggingface
-        if: false
-        # if: github.repository_owner == 'csukuangfj'
+        if: github.repository_owner == 'csukuangfj'
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
