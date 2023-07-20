@@ -49,6 +49,7 @@ jobs:
         env:
           CIBW_BEFORE_BUILD: pip install torch==${{ matrix.torch}} cmake
           CIBW_BUILD: ${{ matrix.python-version }}-*
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: ""
           CIBW_BUILD_VERBOSITY: 3
 
       - name: Display wheels
@@ -66,7 +67,8 @@ jobs:
 
       # https://huggingface.co/docs/hub/spaces-github-actions
       - name: Publish to huggingface
-        if: github.repository_owner == 'csukuangfj'
+        if: false
+        # if: github.repository_owner == 'csukuangfj'
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
