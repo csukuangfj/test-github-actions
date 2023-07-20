@@ -32,8 +32,6 @@ jobs:
         ${{ fromJson(needs.generate_build_matrix.outputs.matrix) }}
 
     steps:
-      - uses: actions/checkout@v2
-
       - name: Checkout k2
         uses: actions/checkout@v2
         with:
@@ -46,8 +44,22 @@ jobs:
 
       # see https://cibuildwheel.readthedocs.io/en/stable/changelog/
       # for a list of versions
-      # - name: Build wheels
-      #   uses: pypa/cibuildwheel@v2.11.4
-      #   env:
-      #     CIBW_BUILD: ${{ matrix.python-version }}-*
-      #     CIBW_BUILD_VERBOSITY: 3
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.11.4
+        env:
+          CIBW_ENVIRONMENT: K2_IS_FOR_PYPI=1 K2_IS_STABLE=1
+          CIBW_BUILD: ${{ matrix.python-version }}-*
+          CIBW_BUILD_VERBOSITY: 3
+
+      - name: Display wheels
+        shell: bash
+        run: |
+          ls -lh ./wheelhouse/
+
+          ls -lh ./wheelhouse/*.whl
+
+      - name: Upload Wheel
+        uses: actions/upload-artifact@v2
+        with:
+          name: torch-${{ matrix.torch }}-python-${{ matrix.python-version }}-macos-latest-cpu
+          path: wheelhouse/*.whl
