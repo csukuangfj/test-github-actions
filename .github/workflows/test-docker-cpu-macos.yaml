@@ -1,0 +1,53 @@
+name: test-docker-cpu-macos
+
+on:
+  push:
+    branches:
+      - master
+      - docker
+
+jobs:
+  generate_build_matrix:
+    # see https://github.com/pytorch/pytorch/pull/50633
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Generating build matrix
+        id: set-matrix
+        run: |
+          # outputting for debugging purposes
+          python ./generate_build_matrix.py --is-macos
+          MATRIX=$(python ./generate_build_matrix.py --is-macos)
+          echo "::set-output name=matrix::${MATRIX}"
+  build-macos-wheels:
+    needs: generate_build_matrix
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ${{ fromJson(needs.generate_build_matrix.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Checkout k2
+        uses: actions/checkout@v2
+        with:
+          repository: k2-fsa/k2
+
+      - name: Display
+        shell: bash
+        run: |
+          ls -lh
+
+      # see https://cibuildwheel.readthedocs.io/en/stable/changelog/
+      # for a list of versions
+      # - name: Build wheels
+      #   uses: pypa/cibuildwheel@v2.11.4
+      #   env:
+      #     CIBW_BUILD: ${{ matrix.python-version }}-*
+      #     CIBW_BUILD_VERBOSITY: 3

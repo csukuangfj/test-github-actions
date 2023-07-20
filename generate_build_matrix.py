@@ -15,6 +15,13 @@ def get_args():
     )
 
     parser.add_argument(
+        "--is-macos",
+        action="store_true",
+        default=False,
+        help="True to for macos",
+    )
+
+    parser.add_argument(
         "--test-only-latest-torch",
         action="store_true",
         default=False,
@@ -24,7 +31,7 @@ def get_args():
     return parser.parse_args()
 
 
-def generate_build_matrix(enable_cuda, test_only_latest_torch):
+def generate_build_matrix(enable_cuda, test_only_latest_torch, is_macos):
     matrix = {
         # there are issues in serializing ragged tensors in 1.5.0 and 1.5.1
         #  "1.5.0": {
@@ -108,6 +115,9 @@ def generate_build_matrix(enable_cuda, test_only_latest_torch):
         latest = "2.0.1"
         matrix = {latest: matrix[latest]}
 
+    if is_macos:
+        assert enable_cuda is False
+
     # We only have limited spaces in anaconda, so we exclude some
     # versions of PyTorch here. If you need them, please consider
     # installing k2 from source
@@ -118,7 +128,7 @@ def generate_build_matrix(enable_cuda, test_only_latest_torch):
 
     excluded_python_versions = []
     enabled_cuda_versions = ["10.2", "11.6", "11.7", "11.8"]
-    enabled_python_versions = ["3.11"]
+    enabled_python_versions = []
 
     ans = []
     for torch, python_cuda in matrix.items():
@@ -149,13 +159,22 @@ def generate_build_matrix(enable_cuda, test_only_latest_torch):
                     continue
                 if enabled_python_versions and p not in enabled_python_versions:
                     continue
-                ans.append(
-                    {
-                        "torch": torch,
-                        "python-version": p,
-                        "image": f"pytorch/manylinux-builder:cuda10.2",
-                    }
-                )
+                if is_macos:
+                    p = "cp" + "".join(p.split("."))
+                    ans.append(
+                        {
+                            "torch": torch,
+                            "python-version": p,
+                        }
+                    )
+                else:
+                    ans.append(
+                        {
+                            "torch": torch,
+                            "python-version": p,
+                            "image": f"pytorch/manylinux-builder:cuda10.2",
+                        }
+                    )
 
     print(json.dumps({"include": ans}))
 
@@ -165,6 +184,7 @@ def main():
     generate_build_matrix(
         enable_cuda=args.enable_cuda,
         test_only_latest_torch=args.test_only_latest_torch,
+        is_macos=args.is_macos,
     )
 
 
