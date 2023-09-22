@@ -15,7 +15,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install QEMU
-        shell: bash
-        run: |
-          sudo apt update && sudo apt install -y qemu qemu-user-static qemu-user binfmt-support
+      # - name: Install QEMU
+      #   shell: bash
+      #   run: |
+      #     sudo apt update && sudo apt install -y qemu qemu-user-static qemu-user binfmt-support
+      #
+      # - name: Setup for QEMU
+      #   shell: bash
+      #   run: |
+      #     sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm
+
+      # https://github.com/mshr-h/onnx-dockerfile-for-raspberry-pi/blob/main/3.10-bullseye-build/Dockerfile.arm32v7
+      - name: Run docker
+        uses: addnab/docker-run-action@v3
+        with:
+            image: balenalib/raspberrypi3-python:3.10-bullseye-build
+            shell: bash
+            run: |
+              ls
+              uname -a
+              which python3
+              file $(which python3)
