@@ -47,6 +47,8 @@ jobs:
               id # root
               apt install git
 
+              python3 -m pip install cmake
+
               git clone https://github.com/k2-fsa/sherpa-ncnn
               cd sherpa-ncnn
               python3 setup.py bdist_wheel
