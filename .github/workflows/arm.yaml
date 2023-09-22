@@ -50,7 +50,6 @@ jobs:
               wget https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake
               export PATH=$PWD:$PATH
 
-              file ./cmake
               cmake --version
 
               git clone https://github.com/k2-fsa/sherpa-ncnn
