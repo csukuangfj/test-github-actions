@@ -47,14 +47,10 @@ jobs:
               id # root
               apt install -qq -y git wget
 
-              if true; then
-                apt install -qq -y cmake
-              else
-                wget -qq https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake-3.27-for-armv7.tar.bz2
-                ls -lh cmake/data/bin
-                chmod +x cmake/data/bin/cmake
-                export PATH=$PWD/cmake/data/bin:$PATH
-              fi
+              wget -qq https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake-3.27-for-armv7.tar.bz2
+              ls -lh cmake/data/bin
+              chmod +x cmake/data/bin/cmake
+              export PATH=$PWD/cmake/data/bin:$PATH
 
               cmake --version
 
