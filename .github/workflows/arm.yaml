@@ -45,7 +45,7 @@ jobs:
               uname -a
               which python3
               id # root
-              apt install -qq -y git wget unzip
+              apt install -qq -y git wget
 
               if true; then
                 apt install -qq -y cmake
