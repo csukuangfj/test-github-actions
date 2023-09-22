@@ -45,12 +45,14 @@ jobs:
               uname -a
               which python3
               id # root
-              apt install -y git wget
+              apt install -y git wget zip
 
-              wget https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake
-              ls -lh
-              chmod +x cmake
-              export PATH=$PWD:$PATH
+              wget https://www.piwheels.org/simple/cmake/cmake-3.27.4.1-cp39-cp39-linux_armv7l.whl
+              unzip cmake-3.27.4.1-cp39-cp39-linux_armv7l.whl
+
+              ls -lh cmake/data/bin
+              chmod +x cmake/data/bin/cmake
+              export PATH=$PWD/cmake/data/bin:$PATH
 
               cmake --version
 
