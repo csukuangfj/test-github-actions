@@ -1,0 +1,21 @@
+name: test-docker-cpu
+
+on:
+  push:
+    branches:
+      - master
+      - docker
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install QEMU
+        shell: bash
+        run: |
+          sudo apt update && sudo apt install-y qemu qemu-user-static qemu-user binfmt-support
