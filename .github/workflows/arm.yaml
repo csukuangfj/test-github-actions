@@ -45,7 +45,7 @@ jobs:
               uname -a
               which python3
               id # root
-              apt install -y git wget zip
+              apt install -y git wget unzip
 
               wget https://www.piwheels.org/simple/cmake/cmake-3.27.4.1-cp39-cp39-linux_armv7l.whl
               unzip cmake-3.27.4.1-cp39-cp39-linux_armv7l.whl
