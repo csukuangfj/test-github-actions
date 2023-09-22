@@ -45,14 +45,16 @@ jobs:
               uname -a
               which python3
               id # root
-              apt install -y git wget unzip
+              apt install -qq -y git wget unzip
 
-              wget https://www.piwheels.org/simple/cmake/cmake-3.27.4.1-cp39-cp39-linux_armv7l.whl
-              unzip cmake-3.27.4.1-cp39-cp39-linux_armv7l.whl
-
-              ls -lh cmake/data/bin
-              chmod +x cmake/data/bin/cmake
-              export PATH=$PWD/cmake/data/bin:$PATH
+              if true; then
+                apt install -qq -y cmake
+              else
+                wget -qq https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake-3.27-for-armv7.tar.bz2
+                ls -lh cmake/data/bin
+                chmod +x cmake/data/bin/cmake
+                export PATH=$PWD/cmake/data/bin:$PATH
+              fi
 
               cmake --version
 
