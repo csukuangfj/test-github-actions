@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v2
@@ -42,7 +42,6 @@ jobs:
         run: |
           echo "sherpa-ncnn version: $SHERPA_NCNN_VERSION"
           mkdir dist
-          touch dist/hello.txt
 
       # https://github.com/mshr-h/onnx-dockerfile-for-raspberry-pi/blob/main/3.10-bullseye-build/Dockerfile.arm32v7
       - name: Run docker
@@ -72,8 +71,8 @@ jobs:
 
               git clone https://github.com/k2-fsa/sherpa-ncnn
               cd sherpa-ncnn
-              # export SHERPA_NCNN_CMAKE_ARGS='-DCMAKE_C_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon" -DCMAKE_CXX_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon"'
-              # python3 setup.py bdist_wheel
+              export SHERPA_NCNN_CMAKE_ARGS='-DCMAKE_C_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon" -DCMAKE_CXX_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon"'
+              python3 setup.py bdist_wheel
               mkdir dist
               ls -lh dist
               touch /build/a.whl
