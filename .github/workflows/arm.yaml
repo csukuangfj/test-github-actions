@@ -47,7 +47,7 @@ jobs:
               id # root
               apt install git
 
-              python3 -m pip install cmake
+              python3 -m pip install -i https://www.piwheels.org/simple cmake
 
               git clone https://github.com/k2-fsa/sherpa-ncnn
               cd sherpa-ncnn
