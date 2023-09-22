@@ -58,5 +58,6 @@ jobs:
 
               git clone https://github.com/k2-fsa/sherpa-ncnn
               cd sherpa-ncnn
+              export SHERPA_NCNN_CMAKE_ARGS='-DCMAKE_C_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon" -DCMAKE_CXX_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon"'
               python3 setup.py bdist_wheel
               ls -lh dist
