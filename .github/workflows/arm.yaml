@@ -58,7 +58,7 @@ jobs:
               uname -a
               which python3
               id # root
-              apt install -qq -y git wget alsa-utils libasound2-dev
+              apt install -qq -y git wget
 
               wget -qq https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake-3.27-for-armv7.tar.bz2
               ls -lh
