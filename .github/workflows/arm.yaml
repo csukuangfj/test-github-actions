@@ -37,8 +37,7 @@ jobs:
         with:
             image: balenalib/raspberrypi3-python:3.10-bullseye-build
             options: |
-              --platform linux/armv7
-              # --volume ${{ runner.temp }}/R-lib:/R-lib
+              --platform linux/arm
             shell: bash
             run: |
               ls
