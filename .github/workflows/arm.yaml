@@ -9,21 +9,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-
-      # - name: Install QEMU
-      #   shell: bash
-      #   run: |
-      #     sudo apt update && sudo apt install -y qemu qemu-user-static qemu-user binfmt-support
-      #
-      # - name: Setup for QEMU
-      #   shell: bash
-      #   run: |
-      #     sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
       # https://github.com/docker/setup-qemu-action
       - name: Set up QEMU
@@ -31,13 +25,33 @@ jobs:
         with:
           platforms: arm
 
+      - name: Get version
+        shell: bash
+        run: |
+          git clone https://github.com/k2-fsa/sherpa-ncnn
+          SHERPA_NCNN_VERSION=$(cat ./sherpa-ncnn/CMakeLists.txt | grep SHERPA_NCNN_VERSION | cut -d " " -f 2 | cut -d '"' -f 2)
+          echo "sherpa-ncnn version: $SHERPA_NCNN_VERSION"
+          echo SHERPA_NCNN_VERSION=$SHERPA_NCNN_VERSION >> $GITHUB_ENV
+
+          v=${{ matrix.python-version }}
+          PYTHON_VERSION=${v/./}
+          echo PYTHON_VERSION=$PYTHON_VERSION >> $GITHUB_ENV
+
+      - name: Create dist
+        shell: bash
+        run: |
+          echo "sherpa-ncnn version: $SHERPA_NCNN_VERSION"
+          mkdir dist
+          touch dist/hello.txt
+
       # https://github.com/mshr-h/onnx-dockerfile-for-raspberry-pi/blob/main/3.10-bullseye-build/Dockerfile.arm32v7
       - name: Run docker
         uses: addnab/docker-run-action@v3
         with:
-            image: balenalib/raspberrypi3-python:3.10-bullseye-build
+            image: balenalib/raspberrypi3-python:${{ matrix.python-version }}-bullseye-build
             options: |
               --platform linux/arm/v7
+              --volume ${{ github.workspace }}/dist:/build
             shell: bash
             run: |
               ls
@@ -58,6 +72,24 @@ jobs:
 
               git clone https://github.com/k2-fsa/sherpa-ncnn
               cd sherpa-ncnn
-              export SHERPA_NCNN_CMAKE_ARGS='-DCMAKE_C_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon" -DCMAKE_CXX_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon"'
-              python3 setup.py bdist_wheel
+              # export SHERPA_NCNN_CMAKE_ARGS='-DCMAKE_C_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon" -DCMAKE_CXX_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon"'
+              # python3 setup.py bdist_wheel
+              mkdir dist
               ls -lh dist
+              touch /build/a.whl
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v3
+        with:
+          name: sherpa_ncnn-${{ env.SHERPA_NCNN_VERSION }}-cp${{ env.PYTHON_VERSION }}-cp${{ env.PYTHON_VERSION }}-linux_armv7l.whl
+          path: ./dst/*.whl
+
+      # - name: Install QEMU
+      #   shell: bash
+      #   run: |
+      #     sudo apt update && sudo apt install -y qemu qemu-user-static qemu-user binfmt-support
+      #
+      # - name: Setup for QEMU
+      #   shell: bash
+      #   run: |
+      #     sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
