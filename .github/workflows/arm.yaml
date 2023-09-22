@@ -48,6 +48,8 @@ jobs:
               apt install -y git wget
 
               wget https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake
+              ls -lh
+              chmod +x cmake
               export PATH=$PWD:$PATH
 
               cmake --version
