@@ -41,6 +41,13 @@ jobs:
             shell: bash
             run: |
               ls
+              # Linux 039ac02f532e 6.2.0-1011-azure #11~22.04.1-Ubuntu SMP Wed Aug 23 19:26:19 UTC 2023 armv7l GNU/Linux
               uname -a
               which python3
-              id
+              id # root
+              apt install git
+
+              git clone https://github.com/k2-fsa/sherpa-ncnn
+              cd sherpa-ncnn
+              python3 setup.py bdist_wheel
+              ls -lh dist
