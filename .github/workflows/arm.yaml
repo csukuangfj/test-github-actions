@@ -73,9 +73,8 @@ jobs:
               cd sherpa-ncnn
               export SHERPA_NCNN_CMAKE_ARGS='-DCMAKE_C_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon" -DCMAKE_CXX_FLAGS="-march=armv7-a -mfloat-abi=hard -mfpu=neon"'
               python3 setup.py bdist_wheel
-              mkdir dist
               ls -lh dist
-              touch /build/a.whl
+              cp -v dist/*.whl /build/
 
       - name: Show files 
         shell: bash
