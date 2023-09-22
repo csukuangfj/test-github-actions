@@ -45,9 +45,13 @@ jobs:
               uname -a
               which python3
               id # root
-              apt install git
+              apt install -y git wget
 
-              python3 -m pip install -i https://www.piwheels.org/simple cmake
+              wget https://huggingface.co/csukuangfj/sherpa-onnx-cmake-deps/resolve/main/cmake
+              export PATH=$PWD:$PATH
+
+              file ./cmake
+              cmake --version
 
               git clone https://github.com/k2-fsa/sherpa-ncnn
               cd sherpa-ncnn
