@@ -78,11 +78,16 @@ jobs:
               ls -lh dist
               touch /build/a.whl
 
+      - name: Show files 
+        shell: bash
+        run: |
+          ls -lh dist/
+
       - name: Upload wheel
         uses: actions/upload-artifact@v3
         with:
           name: sherpa_ncnn-${{ env.SHERPA_NCNN_VERSION }}-cp${{ env.PYTHON_VERSION }}-cp${{ env.PYTHON_VERSION }}-linux_armv7l.whl
-          path: ./dst/*.whl
+          path: ./dist/*.whl
 
       # - name: Install QEMU
       #   shell: bash
