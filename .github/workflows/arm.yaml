@@ -54,7 +54,7 @@ jobs:
             shell: bash
             run: |
               ls
-              pip install https://huggingface.co/csukuangfj/sherpa-ncnn-cmake-deps/resolve/main/sherpa_ncnn-2.1.3-cp38-cp38-linux_armv7l.whl
+              pip install --no-deps https://huggingface.co/csukuangfj/sherpa-ncnn-cmake-deps/resolve/main/sherpa_ncnn-2.1.3-cp38-cp38-linux_armv7l.whl
               python3 -c "import sherpa_ncnn; print(sherpa_ncnn.__file__, sherpa_ncnn.__version__); print(dir(sherpa_ncnn)); print(help(sherpa_ncnn))"
 
       # https://github.com/mshr-h/onnx-dockerfile-for-raspberry-pi/blob/main/3.10-bullseye-build/Dockerfile.arm32v7
