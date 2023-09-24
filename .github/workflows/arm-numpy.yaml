@@ -51,6 +51,8 @@ jobs:
               which python3
               id # root
               cd /workspace
+              pip install Cython
+
 
               cd numpy-1.21.0
               python setup.py bdist_wheel
