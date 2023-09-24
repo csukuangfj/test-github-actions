@@ -35,7 +35,7 @@ jobs:
           wget https://files.pythonhosted.org/packages/66/03/818876390c7ff4484d5a05398a618cfdaf0a2b9abb3a7c7ccd59fe181008/numpy-1.21.0.zip
           unzip numpy-1.21.0.zip
 
-          ls -lh
+          ls -lh numpy-1.21.0
 
       - name: Build numpy
         uses: addnab/docker-run-action@v3
@@ -50,6 +50,7 @@ jobs:
               uname -a
               which python3
               id # root
+              cd /workspace
 
               cd numpy-1.21.0
               python setup.py bdist_wheel
