@@ -30,7 +30,7 @@ jobs:
       - name: Download numpy 1.21.0
         shell: bash
         run: |
-          apt install -qq -y git wget unzip
+          sudo apt install -qq -y git wget unzip
 
           wget https://files.pythonhosted.org/packages/66/03/818876390c7ff4484d5a05398a618cfdaf0a2b9abb3a7c7ccd59fe181008/numpy-1.21.0.zip
           unzip numpy-1.21.0.zip
