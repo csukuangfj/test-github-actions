@@ -27,6 +27,16 @@ jobs:
         with:
           platforms: arm
 
+      - name: Download numpy 1.21.0
+        shell: bash
+        run: |
+          apt install -qq -y git wget unzip
+
+          wget https://files.pythonhosted.org/packages/66/03/818876390c7ff4484d5a05398a618cfdaf0a2b9abb3a7c7ccd59fe181008/numpy-1.21.0.zip
+          unzip numpy-1.21.0.zip
+
+          ls -lh
+
       - name: Build numpy
         uses: addnab/docker-run-action@v3
         with:
@@ -34,20 +44,15 @@ jobs:
             options: |
               --platform linux/arm/v7
               --volume ${{ github.workspace }}/dist:/build
+              --volume ${{ github.workspace }}:/workspace
             shell: bash
             run: |
               uname -a
               which python3
               id # root
-              apt install -qq -y git wget unzip
 
-              wget https://files.pythonhosted.org/packages/66/03/818876390c7ff4484d5a05398a618cfdaf0a2b9abb3a7c7ccd59fe181008/numpy-1.21.0.zip
-              unzip numpy-1.21.0.zip
-              ls -lh
               cd numpy-1.21.0
-
               python setup.py bdist_wheel
-
               ls -lh dist
 
               ls -lh dist
