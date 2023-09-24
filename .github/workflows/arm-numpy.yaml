@@ -41,8 +41,9 @@ jobs:
               id # root
               apt install -qq -y git wget
 
-              git clone https://github.com/numpy/numpy
-              cd numpy
+              wget https://files.pythonhosted.org/packages/55/b3/b13bce39ba82b7398c06d10446f5ffd5c07db39b09bd37370dc720c7951c/numpy-1.26.0.tar.gz
+              tar xvf numpy-1.26.0.tar.gz
+              cd numpy-1.26.0
 
               python setup.py bdist_wheel
 
@@ -59,5 +60,5 @@ jobs:
       - name: Upload wheel
         uses: actions/upload-artifact@v3
         with:
-          name: sentencepiece.zip
+          name: numpy.zip
           path: ./dist/*.whl
