@@ -1,4 +1,4 @@
-name: arm-sentencepiece
+name: arm-numpy
 
 on:
   push:
@@ -7,8 +7,9 @@ on:
       - docker
 
 jobs:
-  test:
+  arm-numpy:
     runs-on: ubuntu-latest
+    name: ${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -26,7 +27,7 @@ jobs:
         with:
           platforms: arm
 
-      - name: Build sentencepiece
+      - name: Build numpy
         uses: addnab/docker-run-action@v3
         with:
             image: balenalib/raspberrypi3-python:${{ matrix.python-version }}-bullseye-build
@@ -40,19 +41,12 @@ jobs:
               id # root
               apt install -qq -y git wget
 
-              git clone https://github.com/google/sentencepiece
-              cd sentencepiece
+              git clone https://github.com/numpy/numpy
+              cd numpy
 
-              mkdir build
-              cd build
-              cmake .. -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=./root
-              make install
-              cd ../python
               python setup.py bdist_wheel
 
               ls -lh dist
-
-              pip install dist/sentencepiece*.whl
 
               ls -lh dist
               cp -v dist/*.whl /build/
