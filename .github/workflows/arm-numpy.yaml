@@ -42,7 +42,7 @@ jobs:
               apt install -qq -y git wget
 
               wget https://files.pythonhosted.org/packages/55/b3/b13bce39ba82b7398c06d10446f5ffd5c07db39b09bd37370dc720c7951c/numpy-1.21.0.tar.gz
-              tar xvf numpy-1.21.0.tar.gz
+              tar xf numpy-1.21.0.tar.gz
               cd numpy-1.21.0
 
               python setup.py bdist_wheel
