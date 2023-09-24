@@ -1,0 +1,69 @@
+name: arm-sentencepiece
+
+on:
+  push:
+    branches:
+      - master
+      - docker
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8"]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm
+
+      - name: Build numpy
+        uses: addnab/docker-run-action@v3
+        with:
+            image: balenalib/raspberrypi3-python:${{ matrix.python-version }}-bullseye-build
+            options: |
+              --platform linux/arm/v7
+              --volume ${{ github.workspace }}/dist:/build
+            shell: bash
+            run: |
+              uname -a
+              which python3
+              id # root
+              apt install -qq -y git wget
+
+              git clone https://github.com/google/sentencepiece
+              cd sentencepiece
+
+              mkdir build
+              cd build
+              cmake .. -DSPM_ENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=./root
+              make install
+              cd ../python
+              python setup.py bdist_wheel
+
+              ls -lh dist
+
+              pip install dist/sentencepiece*.whl
+
+              ls -lh dist
+              cp -v dist/*.whl /build/
+
+      - name: Show files
+        shell: bash
+        run: |
+          ls -lh dist/
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v3
+        with:
+          name: sentencepiece.zip
+          path: ./dist/*.whl
