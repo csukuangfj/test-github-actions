@@ -1,0 +1,103 @@
+name: ubuntu
+
+on:
+  push:
+    branches:
+      - docker
+
+jobs:
+  ubuntu:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8"]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download onnxruntime
+        shell: bash
+        run: |
+          python3 -m pip install ninja
+          git clone --depth 1 https://github.com/microsoft/onnxruntime
+          cd onnxruntime
+          mkdir -p riscv_tools
+
+      - name: build onnxruntime for risc-v
+        shell: bash
+        run: |
+          cd onnxruntime
+          DIR=$PWD/tools/scripts
+          ORT_ROOT_DIR=$DIR/../..
+          PREBUILT_DIR="${ORT_ROOT_DIR}/riscv_tools"
+          echo "The riscv tool prefix path: ${PREBUILT_DIR}"
+          mkdir -p $PREBUILT_DIR
+          WORK_DIR=$DIR/.prebuilt
+
+          RISCV_GNU_TOOLCHAIN_URL="https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download"
+          TOOLCHAIN_VERSION="2023.11.20"
+          RISCV_TOOLCHAIN_FILE_NAME="riscv64-glibc-ubuntu-22.04-llvm-nightly-2023.11.20-nightly.tar.gz"
+          RISCV_TOOLCHAIN_FILE_SHA="98d6531b757fac01e065460c19abe8974976c607a8d88631cc5c1529d90ba7ba"
+          TOOLCHAIN_PATH_PREFIX=${PREBUILT_DIR}
+          execute () {
+            if ! eval "$1"; then
+              echo "command:\"$1\" error"
+              exit 1
+            fi
+          }
+
+          execute "mkdir -p $WORK_DIR"
+          # Download and install the toolchain from
+          # https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download
+          download_file() {
+            local file_name="$1"
+            local install_path="$2"
+            local file_sha="$3"
+
+            echo "Install $1 to $2"
+            if [[ "$(ls -A "$2")" ]]; then
+              read -rp "The file already exists. Keep it (y/n)? " replaced
+              case ${replaced:0:1} in
+                y|Y )
+                  echo "Skip download $1."
+                  return
+                ;;
+                * )
+                  rm -rf "$2"
+                ;;
+              esac
+            fi
+
+            echo "Download ${file_name} ..."
+            mkdir -p "$install_path"
+            wget --progress=bar:force:noscroll --directory-prefix="${WORK_DIR}" \
+              "${RISCV_GNU_TOOLCHAIN_URL}/${TOOLCHAIN_VERSION}/${file_name}" && \
+              echo "${file_sha} ${WORK_DIR}/${file_name}" | sha256sum -c -
+            echo "Extract ${file_name} ..."
+            tar -C "${install_path}" -xf "${WORK_DIR}/${file_name}" --no-same-owner \
+              --strip-components=1
+          }
+          download_file "${RISCV_TOOLCHAIN_FILE_NAME}" "${TOOLCHAIN_PATH_PREFIX}" "${RISCV_TOOLCHAIN_FILE_SHA}"
+
+          RISCV_TOOLCHAIN_ROOT=${TOOLCHAIN_PATH_PREFIX}
+          RISCV_QEMU_PATH=${TOOLCHAIN_PATH_PREFIX}/bin/qemu-riscv64
+          python3 "${ORT_ROOT_DIR}"/tools/ci_build/build.py \
+              --build_dir "${ORT_ROOT_DIR}/build/${DIR_OS}" \
+              --rv64 \
+              --parallel \
+              --skip_tests \
+              --config RelWithDebInfo \
+              --cmake_generator=Ninja \
+              --riscv_qemu_path="${RISCV_QEMU_PATH}" \
+              --allow_running_as_root \
+              --riscv_toolchain_root="${RISCV_TOOLCHAIN_ROOT}" "$@"
