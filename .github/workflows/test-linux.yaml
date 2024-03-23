@@ -5,6 +5,8 @@ on:
     branches:
       - docker
 
+  workflow_dispatch:
+
 jobs:
   ubuntu:
     runs-on: ${{ matrix.os }}
@@ -25,7 +27,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Download ossrs
+      - name: Test
         shell: bash
         run: |
           echo "github.repository_owner: ${{ github.repository_owner }}"
