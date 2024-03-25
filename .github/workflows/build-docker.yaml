@@ -1,0 +1,53 @@
+name: ubuntu
+
+on:
+  push:
+    branches:
+      - docker4
+
+  workflow_dispatch:
+
+jobs:
+  ubuntu:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.8"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Clone onnxruntime
+        shell: bash
+        run: |
+          git clone --branch v1.16.3 --depth 1 https://github.com/microsoft/onnxruntime
+
+      - name: Free space
+        shell: bash
+        run: |
+          df -h
+          rm -rf /opt/hostedtoolcache
+          df -h
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./onnxruntime/tools/ci_build/github/linux/docker/Dockerfile.manylinux2014_cuda11
+          push: true
+          tags: csukuangfj/test-github-actions:onnxruntime
