@@ -30,6 +30,11 @@ jobs:
       - name: Test
         shell: bash
         run: |
+          # csukuangfj
           echo "github.repository_owner: ${{ github.repository_owner }}"
+
+          # push, workflow_dispatch
           echo "github.event_name: ${{ github.event_name }}"
+
+          # refs/heads/master
           echo "github.ref: ${{ github.ref }}"
