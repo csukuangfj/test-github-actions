@@ -3,13 +3,13 @@ name: torch-linux
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
 
 jobs:
   torch-linux:
-    name: ${{ matrix.torch-version }} shared-${{ matrix.shared_lib }}
+    name: ${{ matrix.torch-version }} ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -17,7 +17,8 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.8"]
         torch-version: ["2.3.1"]
-        shared_lib: [ON, OFF]
+        lib-type: [shared, static]
+        cxx11-abi: [yes, no]
 
     steps:
       - name: Setup Python ${{ matrix.python-version }}
@@ -25,80 +26,137 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache build result for ${{ matrix.torch-version }} ${{ matrix.lib-type }}
+        id: cache-build-result
+        uses: actions/cache@v4
+        with:
+          path: torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
+          key: torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
+
       - uses: actions/checkout@v4
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
         with:
           repository: pytorch/pytorch
           submodules: true
           ref: v${{ matrix.torch-version }}
           path: torch-${{ matrix.torch-version }}
 
-      - name: Install dependencies
-        shell: bash
-        run: |
-          cd torch-${{ matrix.torch-version }}
-          pip install -r ./requirements.txt
+      - name: Build onnxruntime ${{ env.ONNXRUNTIME_VERSION }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        uses: addnab/docker-run-action@v3
+        with:
+            image: quay.io/pypa/manylinux2014_x86_64
+            options: |
+              --volume ${{ github.workspace }}/torch-${{ matrix.torch-version }}/:/shared/
+            shell: bash
+            run: |
+              uname -a
+              gcc --version
+              find /opt -name "python*"
+              export PATH=/opt/_internal/cpython-3.8.19/bin:$PATH
+              python3 --version
+              python3 -m pip install ninja cmake
+              cmake --version
 
-          sudo apt-get install tree
+              cd /shared
+              ls -lh
+              pip install -r ./requirements.txt
+              if [[ ${{ matrix.lib-type }} == "shared" ]]; then
+                BUILD_SHARED_LIBS=ON
+              else
+                BUILD_SHARED_LIBS=OFF
+              fi
 
-      - name: Build
-        shell: bash
-        run: |
-          shared_lib=${{ matrix.shared_lib }}
-          cd torch-${{ matrix.torch-version }}
-          mkdir build
-          cd build
+              if [[ ${{ matrix.cxx11-abi }} == "yes" ]]; then
+                GLIBCXX_USE_CXX11_ABI=1
+              else
+                GLIBCXX_USE_CXX11_ABI=0
+              fi
 
-          cmake \
-            -D CMAKE_INSTALL_PREFIX="./install" \
-            -D CMAKE_BUILD_TYPE=Release \
-            -D BUILD_SHARED_LIBS=$shared_lib \
-            -D BUILD_CAFFE2_OPS=OFF \
-            -D BUILD_CUSTOM_PROTOBUF=OFF \
-            -D BUILD_LITE_INTERPRETER=OFF \
-            -D BUILD_PYTHON=OFF \
-            -D INTERN_BUILD_MOBILE=ON \
-            -D INTERN_DISABLE_AUTOGRAD=ON \
-            -D INTERN_DISABLE_ONNX=ON \
-            -D USE_CUDA=OFF \
-            -D USE_DISTRIBUTED=OFF \
-            -D USE_ITT=OFF \
-            -D USE_KINETO=OFF \
-            -D USE_LITE_INTERPRETER_PROFILER=OFF \
-            -D USE_MKLDNN=OFF \
-            -D USE_MPS=OFF \
-            -D USE_NUMPY=OFF \
-            -D USE_OPENMP=OFF \
-            -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
-            -D USE_XNNPACK=OFF \
-            \
-            -D USE_VALGRIND=OFF \
-            ..
-            make -j $(nproc)
-            make install/strip
+              mkdir build
+              cd build
+
+              cmake \
+                -D CMAKE_INSTALL_PREFIX="./install" \
+                -D GLIBCXX_USE_CXX11_ABI=$GLIBCXX_USE_CXX11_ABI \
+                -D CMAKE_BUILD_TYPE=Release \
+                -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
+                -D BUILD_CAFFE2_OPS=OFF \
+                -D BUILD_CUSTOM_PROTOBUF=OFF \
+                -D BUILD_LITE_INTERPRETER=OFF \
+                -D BUILD_PYTHON=OFF \
+                -D INTERN_BUILD_MOBILE=ON \
+                -D INTERN_DISABLE_AUTOGRAD=ON \
+                -D INTERN_DISABLE_ONNX=ON \
+                -D USE_CUDA=OFF \
+                -D USE_DISTRIBUTED=OFF \
+                -D USE_ITT=OFF \
+                -D USE_KINETO=OFF \
+                -D USE_LITE_INTERPRETER_PROFILER=OFF \
+                -D USE_MKLDNN=OFF \
+                -D USE_MPS=OFF \
+                -D USE_NUMPY=OFF \
+                -D USE_OPENMP=OFF \
+                -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
+                -D USE_XNNPACK=OFF \
+                \
+                -D USE_VALGRIND=OFF \
+                ..
+                make -j $(nproc)
+                make install/strip
 
       - name: Display results
         shell: bash
         run: |
           cd torch-${{ matrix.torch-version }}
-          ls -lh build/install
 
-          tree build/install
+          sudo chown -R $USER ./build
+
+          ls -lh build/install
 
           cd build
 
-          shared_lib=${{ matrix.shared_lib }}
-
-          if [[ $shared_lib == ON ]]
-            dst=torch-${{ matrix.torch-version }}-shared
-          else
-            dst=torch-${{ matrix.torch-version }}-static
-          fi
+          dst=torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
 
           mv install $dst
+
           tar cjvf $dst.tar.bz2 $dst
-          mv $dst.tar.bz2 ..
+
+          mv $dst.tar.bz2 ../..
 
       - uses: actions/upload-artifact@v4
         with:
-          name: torch-${{ matrix.torch-version }}-shared-${{ matrix.shared_lib }}
+          name: torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
           path: ./*.tar.bz2
+
+      - name: Publish to huggingface
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 20
+          timeout_seconds: 200
+          shell: bash
+          command: |
+            git config --global user.email "csukuangfj@gmail.com"
+            git config --global user.name "Fangjun Kuang"
+
+            rm -rf huggingface
+            export GIT_LFS_SKIP_SMUDGE=1
+            export GIT_CLONE_PROTECTION_ACTIVE=false
+
+            ls -lh
+
+            git clone https://huggingface.co/csukuangfj/torch-libs huggingface
+            cd huggingface
+            git pull
+
+            name=torch-linux-x64-*.tar.bz2
+
+            cp -v ../$name .
+
+            git status
+            git add .
+            git commit -m "add $name"
+            git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/torch-libs main

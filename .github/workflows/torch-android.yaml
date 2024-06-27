@@ -3,7 +3,7 @@ name: torch-android
 on:
   push:
     branches:
-      - torch
+      - torch2
 
   workflow_dispatch:
 
@@ -16,6 +16,7 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.8"]
         torch-version: ["2.3.1"]
+        shared_lib: [ON, OFF]
 
     steps:
       - name: Setup Python ${{ matrix.python-version }}
