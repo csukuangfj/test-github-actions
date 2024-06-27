@@ -8,17 +8,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version information (e.g., 2.3.1)"
+        description: "Version information (e.g., 2.3.0)"
         required: true
 
 env:
   TORCH_VERSION:
     |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
-    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.1' }}
+    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.0' }}
 
 jobs:
   torch-linux:
-    name: ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }}
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -104,6 +104,7 @@ jobs:
                 -D INTERN_DISABLE_AUTOGRAD=ON \
                 -D INTERN_DISABLE_ONNX=ON \
                 -D USE_CUDA=OFF \
+                -D USE_NCCL=OFF \
                 -D USE_DISTRIBUTED=OFF \
                 -D USE_ITT=OFF \
                 -D USE_KINETO=OFF \
@@ -168,6 +169,7 @@ jobs:
                 -D INTERN_DISABLE_AUTOGRAD=ON \
                 -D INTERN_DISABLE_ONNX=ON \
                 -D USE_CUDA=OFF \
+                -D USE_NCCL=OFF \
                 -D USE_DISTRIBUTED=OFF \
                 -D USE_ITT=OFF \
                 -D USE_KINETO=OFF \
