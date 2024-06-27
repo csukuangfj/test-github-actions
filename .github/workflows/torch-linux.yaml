@@ -6,19 +6,28 @@ on:
       - torch
 
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version information (e.g., 2.3.1)"
+        required: true
+
+env:
+  TORCH_VERSION:
+    |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
+    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.1' }}
 
 jobs:
   torch-linux:
-    name: ${{ matrix.torch-version }} ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }}
+    name: ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.8"]
-        torch-version: ["2.3.1"]
         lib-type: [shared, static]
         cxx11-abi: [yes, no]
+        arch: [x64, aarch64]
 
     steps:
       - name: Setup Python ${{ matrix.python-version }}
@@ -26,28 +35,98 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache build result for ${{ matrix.torch-version }} ${{ matrix.lib-type }}
+      - name: Set up QEMU
+        if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Cache build result for ${{ env.TORCH_VERSION }} ${{ matrix.lib-type }}
         id: cache-build-result
         uses: actions/cache@v4
         with:
-          path: torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
-          key: torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
+          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
 
       - uses: actions/checkout@v4
         if: steps.cache-build-result.outputs.cache-hit != 'true'
         with:
           repository: pytorch/pytorch
           submodules: true
-          ref: v${{ matrix.torch-version }}
-          path: torch-${{ matrix.torch-version }}
+          ref: v${{ env.TORCH_VERSION }}
+          path: torch-${{ env.TORCH_VERSION }}
 
-      - name: Build onnxruntime ${{ env.ONNXRUNTIME_VERSION }}
-        if: steps.cache-build-result.outputs.cache-hit != 'true'
+      - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'x64'
         uses: addnab/docker-run-action@v3
         with:
             image: quay.io/pypa/manylinux2014_x86_64
             options: |
-              --volume ${{ github.workspace }}/torch-${{ matrix.torch-version }}/:/shared/
+              --volume ${{ github.workspace }}/torch-${{ env.TORCH_VERSION }}/:/shared/
+            shell: bash
+            run: |
+              uname -a
+              gcc --version
+              find /opt -name "python*"
+              export PATH=/opt/_internal/cpython-3.8.19/bin:$PATH
+              python3 --version
+              python3 -m pip install ninja cmake
+              cmake --version
+
+              cd /shared
+              ls -lh
+              pip install -r ./requirements.txt
+              if [[ ${{ matrix.lib-type }} == "shared" ]]; then
+                BUILD_SHARED_LIBS=ON
+              else
+                BUILD_SHARED_LIBS=OFF
+              fi
+
+              if [[ ${{ matrix.cxx11-abi }} == "yes" ]]; then
+                GLIBCXX_USE_CXX11_ABI=1
+              else
+                GLIBCXX_USE_CXX11_ABI=0
+              fi
+
+              mkdir build
+              cd build
+
+              cmake \
+                -D CMAKE_INSTALL_PREFIX="./install" \
+                -D GLIBCXX_USE_CXX11_ABI=$GLIBCXX_USE_CXX11_ABI \
+                -D CMAKE_BUILD_TYPE=Release \
+                -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
+                -D BUILD_CAFFE2_OPS=OFF \
+                -D BUILD_CUSTOM_PROTOBUF=OFF \
+                -D BUILD_LITE_INTERPRETER=OFF \
+                -D BUILD_PYTHON=OFF \
+                -D INTERN_BUILD_MOBILE=ON \
+                -D INTERN_DISABLE_AUTOGRAD=ON \
+                -D INTERN_DISABLE_ONNX=ON \
+                -D USE_CUDA=OFF \
+                -D USE_DISTRIBUTED=OFF \
+                -D USE_ITT=OFF \
+                -D USE_KINETO=OFF \
+                -D USE_LITE_INTERPRETER_PROFILER=OFF \
+                -D USE_MKLDNN=OFF \
+                -D USE_MPS=OFF \
+                -D USE_NUMPY=OFF \
+                -D USE_OPENMP=OFF \
+                -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
+                -D USE_XNNPACK=OFF \
+                \
+                -D USE_VALGRIND=OFF \
+                ..
+                make -j $(nproc)
+                make install/strip
+
+      - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'aarch64'
+        uses: addnab/docker-run-action@v3
+        with:
+            image: quay.io/pypa/manylinux2014_aarch64
+            options: |
+              --volume ${{ github.workspace }}/torch-${{ env.TORCH_VERSION }}/:/shared/
             shell: bash
             run: |
               uname -a
@@ -108,7 +187,7 @@ jobs:
       - name: Display results
         shell: bash
         run: |
-          cd torch-${{ matrix.torch-version }}
+          cd torch-${{ env.TORCH_VERSION }}
 
           sudo chown -R $USER ./build
 
@@ -116,7 +195,7 @@ jobs:
 
           cd build
 
-          dst=torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
+          dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
 
           mv install $dst
 
@@ -126,7 +205,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: torch-linux-x64-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ matrix.torch-version }}
+          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
           path: ./*.tar.bz2
 
       - name: Publish to huggingface
@@ -152,7 +231,7 @@ jobs:
             cd huggingface
             git pull
 
-            name=torch-linux-x64-*.tar.bz2
+            name=torch-linux-${{ matrix.arch }}-*.tar.bz2
 
             cp -v ../$name .
 
