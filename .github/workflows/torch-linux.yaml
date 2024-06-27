@@ -101,6 +101,7 @@ jobs:
               cd build
 
               cmake \
+                -D PYTHON_EXECUTABLE=/opt/_internal/cpython-3.8.19/bin/python3.8 \
                 -D CMAKE_INSTALL_PREFIX="./install" \
                 -D GLIBCXX_USE_CXX11_ABI=$GLIBCXX_USE_CXX11_ABI \
                 -D CMAKE_BUILD_TYPE=Release \
@@ -125,6 +126,7 @@ jobs:
                 -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
                 -D USE_XNNPACK=OFF \
                 \
+                -D USE_NNPACK=OFF \
                 -D USE_VALGRIND=OFF \
                 ..
                 make -j $(nproc)
@@ -166,6 +168,7 @@ jobs:
               cd build
 
               cmake \
+                -D PYTHON_EXECUTABLE=/opt/_internal/cpython-3.8.19/bin/python3.8 \
                 -D CMAKE_INSTALL_PREFIX="./install" \
                 -D GLIBCXX_USE_CXX11_ABI=$GLIBCXX_USE_CXX11_ABI \
                 -D CMAKE_BUILD_TYPE=Release \
@@ -188,7 +191,8 @@ jobs:
                 -D USE_NUMPY=OFF \
                 -D USE_OPENMP=OFF \
                 -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
-                -D USE_XNNPACK=ON \
+                -D USE_XNNPACK=OFF \
+                -D USE_NNPACK=OFF \
                 \
                 -D USE_VALGRIND=OFF \
                 ..
