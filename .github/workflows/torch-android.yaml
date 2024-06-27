@@ -56,11 +56,13 @@ jobs:
           cd torch-${{ matrix.torch-version }}
           # https://djl.ai/android/pytorch-native/
 
-          sed -i.bak s/'DEFINED USE_VULKAN'/'DEFINED $ENV{USE_VULKAN}'/g  ./CMakeLists.txt
+          cd scripts
+          sed -i.bak s/USE_VULKAN=ON/USE_VULKAN=OFF/g ./build_android.sh
+          cd ..
           git diff
 
           export BUILD_LITE_INTERPRETER=0
-          export USE_VULKAN=0
+          export USE_VULKAN=OFF
           ./scripts/build_pytorch_android.sh arm64-v8a,armeabi-v7a,x86,x86_64
 
       - name: Display

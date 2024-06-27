@@ -1,0 +1,104 @@
+name: torch-linux
+
+on:
+  push:
+    branches:
+      - torch2
+
+  workflow_dispatch:
+
+jobs:
+  torch-linux:
+    name: ${{ matrix.torch-version }} shared-${{ matrix.shared_lib }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.8"]
+        torch-version: ["2.3.1"]
+        shared_lib: [ON, OFF]
+
+    steps:
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/checkout@v4
+        with:
+          repository: pytorch/pytorch
+          submodules: true
+          ref: v${{ matrix.torch-version }}
+          path: torch-${{ matrix.torch-version }}
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          cd torch-${{ matrix.torch-version }}
+          pip install -r ./requirements.txt
+
+          sudo apt-get install tree
+
+      - name: Build
+        shell: bash
+        run: |
+          shared_lib=${{ matrix.shared_lib }}
+          cd torch-${{ matrix.torch-version }}
+          mkdir build
+          cd build
+
+          cmake \
+            -D CMAKE_INSTALL_PREFIX="./install" \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D BUILD_SHARED_LIBS=$shared_lib \
+            -D BUILD_CAFFE2_OPS=OFF \
+            -D BUILD_CUSTOM_PROTOBUF=OFF \
+            -D BUILD_LITE_INTERPRETER=OFF \
+            -D BUILD_PYTHON=OFF \
+            -D INTERN_BUILD_MOBILE=ON \
+            -D INTERN_DISABLE_AUTOGRAD=ON \
+            -D INTERN_DISABLE_ONNX=ON \
+            -D USE_CUDA=OFF \
+            -D USE_DISTRIBUTED=OFF \
+            -D USE_ITT=OFF \
+            -D USE_KINETO=OFF \
+            -D USE_LITE_INTERPRETER_PROFILER=OFF \
+            -D USE_MKLDNN=OFF \
+            -D USE_MPS=OFF \
+            -D USE_NUMPY=OFF \
+            -D USE_OPENMP=OFF \
+            -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
+            -D USE_XNNPACK=OFF \
+            \
+            -D USE_VALGRIND=OFF \
+            ..
+            make -j $(nproc)
+            make install/strip
+
+      - name: Display results
+        shell: bash
+        run: |
+          cd torch-${{ matrix.torch-version }}
+          ls -lh build/install
+
+          tree build/install
+
+          cd build
+
+          shared_lib=${{ matrix.shared_lib }}
+
+          if [[ $shared_lib == ON ]]
+            dst=torch-${{ matrix.torch-version }}-shared
+          else
+            dst=torch-${{ matrix.torch-version }}-static
+          fi
+
+          mv install $dst
+          tar cjvf $dst.tar.bz2 $dst
+          mv $dst.tar.bz2 ..
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: torch-${{ matrix.torch-version }}-shared-${{ matrix.shared_lib }}
+          path: ./*.tar.bz2
