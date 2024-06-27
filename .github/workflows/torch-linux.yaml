@@ -188,7 +188,7 @@ jobs:
                 -D USE_NUMPY=OFF \
                 -D USE_OPENMP=OFF \
                 -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
-                -D USE_XNNPACK=OFF \
+                -D USE_XNNPACK=ON \
                 \
                 -D USE_VALGRIND=OFF \
                 ..
