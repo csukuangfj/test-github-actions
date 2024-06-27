@@ -48,13 +48,22 @@ jobs:
           path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
           key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
 
-      - uses: actions/checkout@v4
+      # - uses: actions/checkout@v4
+      #   if: steps.cache-build-result.outputs.cache-hit != 'true'
+      #   with:
+      #     repository: pytorch/pytorch
+      #     submodules: true
+      #     ref: v${{ env.TORCH_VERSION }}
+      #     path: torch-${{ env.TORCH_VERSION }}
+      - name: Download PyTorch ${{ env.TORCH_VERSION }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
-        with:
-          repository: pytorch/pytorch
-          submodules: true
-          ref: v${{ env.TORCH_VERSION }}
-          path: torch-${{ env.TORCH_VERSION }}
+        shell: bash
+        run: |
+          version=${{ env.TORCH_VERSION }}
+          curl -SL -O https://github.com/pytorch/pytorch/releases/download/v$version/pytorch-v$version.tar.gz
+          tar xf pytorch-v$version.tar.gz
+
+          mv pytorch-v$version torch-$version
 
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
         if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'x64'
