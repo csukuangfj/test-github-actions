@@ -60,6 +60,7 @@ jobs:
           git diff
 
           export BUILD_LITE_INTERPRETER=0
+          export USE_VULKAN=0
           ./scripts/build_pytorch_android.sh arm64-v8a,armeabi-v7a,x86,x86_64
 
       - name: Display
