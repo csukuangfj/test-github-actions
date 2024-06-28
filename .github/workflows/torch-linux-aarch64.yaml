@@ -234,6 +234,17 @@ jobs:
 
           dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
+          cd install
+          ls -lh
+
+          if [[ ${{ matrix.lib-type }} == 'static' ]]; then
+            cp -av ./lib64/* ./lib/ || true
+          fi
+
+          rm -rf lib64
+
+          cd ..
+
           mv install $dst
 
           tar cjvf $dst.tar.bz2 $dst

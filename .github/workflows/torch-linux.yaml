@@ -38,7 +38,7 @@ jobs:
         id: cache-build-result
         uses: actions/cache@v4
         with:
-          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
+          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}.tar.bz2
           key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
       - name: Download PyTorch ${{ env.TORCH_VERSION }}
@@ -137,6 +137,17 @@ jobs:
           cd build
 
           dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
+
+          cd install
+          ls -lh
+
+          if [[ ${{ matrix.lib-type }} == 'static' ]]; then
+            cp -av ./lib64/* ./lib/ || true
+          fi
+
+          rm -rf lib64
+
+          cd ..
 
           mv install $dst
 
