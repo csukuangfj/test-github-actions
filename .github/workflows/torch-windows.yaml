@@ -42,12 +42,12 @@ jobs:
           key: torch-win-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
       - uses: actions/checkout@v4
-         if: steps.cache-build-result.outputs.cache-hit != 'true'
-         with:
-           repository: pytorch/pytorch
-           submodules: true
-           ref: v${{ env.TORCH_VERSION }}
-           path: torch-${{ env.TORCH_VERSION }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        with:
+          repository: pytorch/pytorch
+          submodules: true
+          ref: v${{ env.TORCH_VERSION }}
+          path: torch-${{ env.TORCH_VERSION }}
 
       - name: Apply changes
         if: steps.cache-build-result.outputs.cache-hit != 'true'
@@ -70,18 +70,26 @@ jobs:
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
         shell: bash
         run:
-          which python3
           version=${{ env.TORCH_VERSION }}
+
+          lib_type=${{ matrix.lib-type }}
+
           cd torch-$version
+
           pip install -r ./requirements.txt
-          if [[ ${{ matrix.lib-type }} == "shared" ]]; then
+
+          if [[ $lib_type == "shared" ]]; then
             BUILD_SHARED_LIBS=ON
           else
             BUILD_SHARED_LIBS=OFF
           fi
 
           mkdir build
+
           cd build
+
+          # C:\hostedtoolcache\windows\Python\3.8.10\x64
+          # /c/hostedtoolcache/windows/Python/3.8.10/x64/python3
 
           cmake \
             -D CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded \
