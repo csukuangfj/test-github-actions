@@ -3,7 +3,7 @@ name: torch-linux
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
     inputs:
@@ -49,13 +49,6 @@ jobs:
           path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
           key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
 
-      # - uses: actions/checkout@v4
-      #   if: steps.cache-build-result.outputs.cache-hit != 'true'
-      #   with:
-      #     repository: pytorch/pytorch
-      #     submodules: true
-      #     ref: v${{ env.TORCH_VERSION }}
-      #     path: torch-${{ env.TORCH_VERSION }}
       - name: Download PyTorch ${{ env.TORCH_VERSION }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
         shell: bash
@@ -65,6 +58,19 @@ jobs:
           tar xf pytorch-v$version.tar.gz
 
           mv pytorch-v$version torch-$version
+
+          cd torch-$version
+
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:66
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::LEGACY_deserialize(std::shared_ptr<torch::jit::CompilationUnit>, std::shared_ptr<caffe2::serialize::PyTorchStreamReader>, std::optional<c10::Device> const&)'
+
+          sed -i.bak s'|^#if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)|#if 0|'g ./torch/csrc/jit/serialization/import.cpp
+
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:67
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
+          sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
 
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
         if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'x64'

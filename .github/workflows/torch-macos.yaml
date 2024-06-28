@@ -3,18 +3,18 @@ name: torch-macos
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
     inputs:
       version:
-        description: "Version information (e.g., 2.3.0)"
+        description: "Version information (e.g., 2.3.1)"
         required: true
 
 env:
   TORCH_VERSION:
     |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
-    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.0' }}
+    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.1' }}
 
 jobs:
   torch-macos:
@@ -94,6 +94,19 @@ jobs:
           tar xf pytorch-v$version.tar.gz
 
           mv pytorch-v$version torch-$version
+
+          cd torch-$version
+
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:66
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::LEGACY_deserialize(std::shared_ptr<torch::jit::CompilationUnit>, std::shared_ptr<caffe2::serialize::PyTorchStreamReader>, std::optional<c10::Device> const&)'
+
+          sed -i.bak s'|^#if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)|#if 0|'g ./torch/csrc/jit/serialization/import.cpp
+
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:67
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
+          sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
 
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }} ${{ matrix.lib-type }} ${{ matrix.cxx11-abi }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
