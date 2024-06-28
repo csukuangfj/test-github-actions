@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version information (e.g., 2.3.0)"
+        description: "Version information (e.g., 2.3.1)"
         required: true
 
 env:
   TORCH_VERSION:
     |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
-    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.0' }}
+    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.1' }}
 
 jobs:
   torch-linux:
