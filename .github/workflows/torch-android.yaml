@@ -18,11 +18,12 @@ env:
 
 jobs:
   torch-android:
+    name: android ${{ matrix.shared_lib }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-latest]
         python-version: ["3.8"]
         shared_lib: [ON, OFF]
 
@@ -55,13 +56,15 @@ jobs:
           # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
           sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
 
+
+
       - name: Install dependencies
         shell: bash
         run: |
           cd torch-${{ env.TORCH_VERSION }}
           pip install -r ./requirements.txt
 
-          sudo apt-get install tree
+          brew install tree
 
       # https://github.com/actions/setup-java
       - uses: actions/setup-java@v4
@@ -81,22 +84,17 @@ jobs:
           cd torch-${{ env.TORCH_VERSION }}
           # https://djl.ai/android/pytorch-native/
 
-          # To fix the following error
-          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:66
-          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::LEGACY_deserialize(std::shared_ptr<torch::jit::CompilationUnit>, std::shared_ptr<caffe2::serialize::PyTorchStreamReader>, std::optional<c10::Device> const&)'
-
-          sed -i.bak s'|^#if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)|#if 0|'g ./torch/csrc/jit/serialization/import.cpp
-
-          # To fix the following error
-          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:67
-          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
-          sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
-
           sed -i.bak s/USE_VULKAN=ON/USE_VULKAN=OFF/g ./scripts/build_android.sh
+
+          if [[ ${{ matrix.shared_lib }} == ON ]]; then
+            sed -i.bak s/BUILD_SHARED_LIBS=OFF/BUILD_SHARED_LIBS=ON/g ./scripts/build_android.sh
+          fi
 
           sed -i.bak s"/Use Vulkan GPU backend\" ON/Use Vulkan GPU backend\" OFF/g" ./CMakeLists.txt
 
           export BUILD_LITE_INTERPRETER=0
+
+          export MAX_JOBS=4
           ./scripts/build_pytorch_android.sh arm64-v8a,armeabi-v7a,x86,x86_64
 
       - name: Display
