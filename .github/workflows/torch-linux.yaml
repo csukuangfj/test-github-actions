@@ -3,7 +3,7 @@ name: torch-linux
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
     inputs:
@@ -27,7 +27,8 @@ jobs:
         python-version: ["3.8"]
         lib-type: [shared, static]
         cxx11-abi: [yes, no]
-        arch: [x64, aarch64]
+        # arch: [x64, aarch64]
+        arch: [x64]
 
     steps:
       - name: Setup Python ${{ matrix.python-version }}
@@ -107,7 +108,7 @@ jobs:
                 -D CMAKE_BUILD_TYPE=Release \
                 -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
                 -D BUILD_CAFFE2_OPS=OFF \
-                -D BUILD_CUSTOM_PROTOBUF=OFF \
+                -D BUILD_CUSTOM_PROTOBUF=ON \
                 -D BUILD_LITE_INTERPRETER=OFF \
                 -D BUILD_PYTHON=OFF \
                 -D INTERN_BUILD_MOBILE=ON \
@@ -174,7 +175,7 @@ jobs:
                 -D CMAKE_BUILD_TYPE=Release \
                 -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
                 -D BUILD_CAFFE2_OPS=OFF \
-                -D BUILD_CUSTOM_PROTOBUF=OFF \
+                -D BUILD_CUSTOM_PROTOBUF=ON \
                 -D BUILD_LITE_INTERPRETER=OFF \
                 -D BUILD_PYTHON=OFF \
                 -D INTERN_BUILD_MOBILE=ON \
