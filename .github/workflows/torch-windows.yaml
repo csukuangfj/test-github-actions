@@ -41,16 +41,19 @@ jobs:
           path: torch-win-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}.tar.bz2
           key: torch-win-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
-      - name: Download PyTorch ${{ env.TORCH_VERSION }}
+      - uses: actions/checkout@v4
+         if: steps.cache-build-result.outputs.cache-hit != 'true'
+         with:
+           repository: pytorch/pytorch
+           submodules: true
+           ref: v${{ env.TORCH_VERSION }}
+           path: torch-${{ env.TORCH_VERSION }}
+
+      - name: Apply changes
         if: steps.cache-build-result.outputs.cache-hit != 'true'
         shell: bash
         run: |
           version=${{ env.TORCH_VERSION }}
-          curl -SL -O https://github.com/pytorch/pytorch/releases/download/v$version/pytorch-v$version.tar.gz
-          tar xf pytorch-v$version.tar.gz
-
-          mv pytorch-v$version torch-$version
-
           cd torch-$version
 
           # To fix the following error
