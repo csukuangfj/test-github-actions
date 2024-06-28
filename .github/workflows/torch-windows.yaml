@@ -3,7 +3,7 @@ name: torch-windows
 on:
   push:
     branches:
-      - torch
+      - torch2
 
   workflow_dispatch:
     inputs:
@@ -56,16 +56,9 @@ jobs:
           version=${{ env.TORCH_VERSION }}
           cd torch-$version
 
-          # To fix the following error
-          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:66
-          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::LEGACY_deserialize(std::shared_ptr<torch::jit::CompilationUnit>, std::shared_ptr<caffe2::serialize::PyTorchStreamReader>, std::optional<c10::Device> const&)'
+          #sed -i.bak s"/if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)/if 0/"g ./torch/csrc/jit/serialization/import.cpp
 
-          sed -i.bak s'|^#if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)|#if 0|'g ./torch/csrc/jit/serialization/import.cpp
-
-          # To fix the following error
-          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:67
-          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
-          sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
+          #sed -i.bak s"/ifndef C10_MOBILE/if 0/"g ./torch/csrc/jit/serialization/pickle.cpp
 
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
         shell: bash

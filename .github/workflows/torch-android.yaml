@@ -3,7 +3,7 @@ name: torch-android
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
     inputs:
@@ -57,7 +57,6 @@ jobs:
           sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
 
 
-
       - name: Install dependencies
         shell: bash
         run: |
@@ -66,21 +65,48 @@ jobs:
 
           sudo apt-get install -y tree
 
-      # https://github.com/actions/setup-java
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin' # See 'Supported distributions' for available options
-          java-version: '21'
+      - name: Install NDK 21
+        shell: bash
+        run: |
+          # See https://github.com/actions/runner-images/issues/5595
+          ANDROID_ROOT=/usr/local/lib/android
+          ANDROID_SDK_ROOT=${ANDROID_ROOT}/sdk
+          SDKMANAGER=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
+          echo "y" | $SDKMANAGER "ndk;21.4.7075529"
+
+      - name: Change default NDK to 21
+        shell: bash
+        run: |
+          ANDROID_ROOT=/usr/local/lib/android
+          ANDROID_SDK_ROOT=${ANDROID_ROOT}/sdk
+          ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk-bundle
+          ln -sfn $ANDROID_SDK_ROOT/ndk/21.4.7075529 $ANDROID_NDK_ROOT
 
       - name: Display NDK HOME
         shell: bash
         run: |
+          export ANDROID_ROOT=/usr/local/lib/android
+          export ANDROID_SDK_ROOT=${ANDROID_ROOT}/sdk
+          export ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk-bundle
+          ln -sfn $ANDROID_SDK_ROOT/ndk/21.4.7075529 $ANDROID_NDK_ROOT
+
           echo "ANDROID_NDK_LATEST_HOME: ${ANDROID_NDK_LATEST_HOME}"
           ls -lh ${ANDROID_NDK_LATEST_HOME}
 
       - name: Build
         shell: bash
         run: |
+          export ANDROID_ROOT=/usr/local/lib/android
+          export ANDROID_SDK_ROOT=${ANDROID_ROOT}/sdk
+          export ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk-bundle
+          ln -sfn $ANDROID_SDK_ROOT/ndk/21.4.7075529 $ANDROID_NDK_ROOT
+
+          export ANDROID_NDK=$ANDROID_SDK_ROOT/ndk/21.4.7075529
+
+          ls -lh $ANDROID_NDK
+
+          export ANDROID_NDK_LATEST_HOME=$ANDROID_NDK
+
           cd torch-${{ env.TORCH_VERSION }}
           # https://djl.ai/android/pytorch-native/
 
