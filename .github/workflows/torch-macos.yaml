@@ -18,7 +18,7 @@ env:
 
 jobs:
   torch-macos:
-    name: ${{ matrix.arch }} ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }}
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -27,49 +27,21 @@ jobs:
           - os: macos-13
             python-version: "3.8"
             lib-type: "shared"
-            cxx11-abi: "yes"
-            arch: "x64"
-
-          - os: macos-13
-            python-version: "3.8"
-            lib-type: "shared"
-            cxx11-abi: "no"
             arch: "x64"
 
           - os: macos-13
             python-version: "3.8"
             lib-type: "static"
-            cxx11-abi: "yes"
-            arch: "x64"
-
-          - os: macos-13
-            python-version: "3.8"
-            lib-type: "static"
-            cxx11-abi: "no"
             arch: "x64"
 
           - os: macos-14
             python-version: "3.8"
             lib-type: "shared"
-            cxx11-abi: "yes"
-            arch: "arm64"
-
-          - os: macos-14
-            python-version: "3.8"
-            lib-type: "shared"
-            cxx11-abi: "no"
             arch: "arm64"
 
           - os: macos-14
             python-version: "3.8"
             lib-type: "static"
-            cxx11-abi: "yes"
-            arch: "arm64"
-
-          - os: macos-14
-            python-version: "3.8"
-            lib-type: "static"
-            cxx11-abi: "no"
             arch: "arm64"
 
     steps:
@@ -82,8 +54,8 @@ jobs:
         id: cache-build-result
         uses: actions/cache@v4
         with:
-          path: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}.tar.bz2
-          key: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          path: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}.tar.bz2
+          key: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
       - name: Download PyTorch ${{ env.TORCH_VERSION }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
@@ -108,7 +80,7 @@ jobs:
           # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
           sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
 
-      - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }} ${{ matrix.lib-type }} ${{ matrix.cxx11-abi }}
+      - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }} ${{ matrix.lib-type }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
         shell: bash
         run: |
@@ -132,12 +104,6 @@ jobs:
             BUILD_SHARED_LIBS=OFF
           fi
 
-          if [[ ${{ matrix.cxx11-abi }} == "yes" ]]; then
-            GLIBCXX_USE_CXX11_ABI=1
-          else
-            GLIBCXX_USE_CXX11_ABI=0
-          fi
-
           mkdir build
           cd build
 
@@ -147,7 +113,6 @@ jobs:
           cmake \
             -D PYTHON_EXECUTABLE=$PYTHON_EXECUTABLE \
             -D CMAKE_INSTALL_PREFIX="./install" \
-            -D GLIBCXX_USE_CXX11_ABI=$GLIBCXX_USE_CXX11_ABI \
             -D CMAKE_BUILD_TYPE=Release \
             -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
             -D BUILD_CAFFE2_OPS=OFF \
@@ -188,7 +153,7 @@ jobs:
 
           cd build
 
-          dst=torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          dst=torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
           mv install $dst
 
@@ -199,7 +164,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: steps.cache-build-result.outputs.cache-hit != 'true'
         with:
-          name: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          name: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
           path: ./*.tar.bz2
 
       - name: Publish to huggingface

@@ -3,22 +3,21 @@ name: torch-linux-aarch64
 on:
   push:
     branches:
-      - torch2
-
+      - torch
   workflow_dispatch:
     inputs:
       version:
-        description: "Version information (e.g., 2.3.0)"
+        description: "Version information (e.g., 2.3.1)"
         required: true
 
 env:
   TORCH_VERSION:
     |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
-    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.0' }}
+    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.1' }}
 
 jobs:
   part1:
-    name: ${{ matrix.arch }} ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }} part 1
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }} part 1
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,7 +25,6 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.8"]
         lib-type: [shared, static]
-        cxx11-abi: [yes, no]
         arch: [aarch64]
 
     steps:
@@ -36,7 +34,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up QEMU
-        if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'aarch64'
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
         uses: docker/setup-qemu-action@v2
         with:
           platforms: all
@@ -45,8 +43,8 @@ jobs:
         id: cache-build-result
         uses: actions/cache@v4
         with:
-          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}-part-1.tar.bz2
-          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}-part-1
+          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1.tar.bz2
+          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
 
       - name: Download PyTorch ${{ env.TORCH_VERSION }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
@@ -59,7 +57,7 @@ jobs:
           mv pytorch-v$version torch-$version
 
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
-        if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'aarch64'
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
         uses: addnab/docker-run-action@v3
         with:
             image: quay.io/pypa/manylinux2014_aarch64
@@ -84,19 +82,12 @@ jobs:
                 BUILD_SHARED_LIBS=OFF
               fi
 
-              if [[ ${{ matrix.cxx11-abi }} == "yes" ]]; then
-                GLIBCXX_USE_CXX11_ABI=1
-              else
-                GLIBCXX_USE_CXX11_ABI=0
-              fi
-
               mkdir build
               cd build
 
               cmake \
                 -D PYTHON_EXECUTABLE=/opt/_internal/cpython-3.8.19/bin/python3.8 \
                 -D CMAKE_INSTALL_PREFIX="./install" \
-                -D GLIBCXX_USE_CXX11_ABI=$GLIBCXX_USE_CXX11_ABI \
                 -D CMAKE_BUILD_TYPE=Release \
                 -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
                 -D BUILD_CAFFE2_OPS=OFF \
@@ -137,7 +128,7 @@ jobs:
           sudo chown -R $USER ./build
           cd ..
 
-          dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}-part-1
+          dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
           mv $src $dst
 
           tar cjf $dst.tar.bz2 $dst
@@ -147,12 +138,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: steps.cache-build-result.outputs.cache-hit != 'true'
         with:
-          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}-part-1
+          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
           path: ./*.tar.bz2
 
   part2:
     needs: [part1]
-    name: ${{ matrix.arch }} ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }} part 2
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }} part 2
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -160,7 +151,6 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.8"]
         lib-type: [shared, static]
-        cxx11-abi: [yes, no]
         arch: [aarch64]
 
     steps:
@@ -170,7 +160,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up QEMU
-        if: steps.cache-build-result.outputs.cache-hit != 'true' && matrix.arch == 'aarch64'
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
         uses: docker/setup-qemu-action@v2
         with:
           platforms: all
@@ -179,14 +169,14 @@ jobs:
         id: cache-build-result-2
         uses: actions/cache@v4
         with:
-          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}.tar.bz2
-          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}.tar.bz2
+          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
       - name: Retrieve artifact from part-1
         if: steps.cache-build-result-2.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v4
         with:
-          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}-part-1
+          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
           path: /tmp/part-1
 
       - name: Rename
@@ -206,7 +196,7 @@ jobs:
           ls -lh
 
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
-        if: steps.cache-build-result-2.outputs.cache-hit != 'true' && matrix.arch == 'aarch64'
+        if: steps.cache-build-result-2.outputs.cache-hit != 'true'
         uses: addnab/docker-run-action@v3
         with:
             image: quay.io/pypa/manylinux2014_aarch64
@@ -242,7 +232,7 @@ jobs:
 
           cd build
 
-          dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
 
           mv install $dst
 
@@ -253,7 +243,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: steps.cache-build-result-2.outputs.cache-hit != 'true'
         with:
-          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
           path: ./*.tar.bz2
 
       - name: Publish to huggingface
