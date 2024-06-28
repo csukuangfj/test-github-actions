@@ -3,7 +3,7 @@ name: torch-android
 on:
   push:
     branches:
-      - torch
+      - torch2
 
   workflow_dispatch:
     inputs:

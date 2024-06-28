@@ -1,10 +1,9 @@
-name: torch-linux
+name: torch-linux-aarch64
 
 on:
   push:
     branches:
-      - torch
-
+      - torch2
   workflow_dispatch:
     inputs:
       version:
@@ -17,8 +16,8 @@ env:
     ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.1' }}
 
 jobs:
-  torch-linux:
-    name: ${{ matrix.arch }} ${{ matrix.lib-type }}
+  part1:
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }} part 1
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,7 +25,7 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.8"]
         lib-type: [shared, static]
-        arch: [x64]
+        arch: [aarch64]
 
     steps:
       - name: Setup Python ${{ matrix.python-version }}
@@ -34,12 +33,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Set up QEMU
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
       - name: Cache build result for ${{ env.TORCH_VERSION }} ${{ matrix.lib-type }}
         id: cache-build-result
         uses: actions/cache@v4
         with:
-          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}.tar.bz2
-          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
+          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1.tar.bz2
+          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
 
       - name: Download PyTorch ${{ env.TORCH_VERSION }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
@@ -51,24 +56,11 @@ jobs:
 
           mv pytorch-v$version torch-$version
 
-          cd torch-$version
-
-          # To fix the following error
-          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:66
-          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::LEGACY_deserialize(std::shared_ptr<torch::jit::CompilationUnit>, std::shared_ptr<caffe2::serialize::PyTorchStreamReader>, std::optional<c10::Device> const&)'
-
-          sed -i.bak s'|^#if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)|#if 0|'g ./torch/csrc/jit/serialization/import.cpp
-
-          # To fix the following error
-          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:67
-          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
-          sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
-
       - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
         uses: addnab/docker-run-action@v3
         with:
-            image: quay.io/pypa/manylinux2014_x86_64
+            image: quay.io/pypa/manylinux2014_aarch64
             options: |
               --volume ${{ github.workspace }}/torch-${{ env.TORCH_VERSION }}/:/shared/
             shell: bash
@@ -99,8 +91,7 @@ jobs:
                 -D CMAKE_BUILD_TYPE=Release \
                 -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
                 -D BUILD_CAFFE2_OPS=OFF \
-                -D BUILD_CUSTOM_PROTOBUF=ON \
-                -D CAFFE2_LINK_LOCAL_PROTOBUF=ON \
+                -D BUILD_CUSTOM_PROTOBUF=OFF \
                 -D BUILD_LITE_INTERPRETER=OFF \
                 -D BUILD_PYTHON=OFF \
                 -D INTERN_BUILD_MOBILE=ON \
@@ -118,15 +109,119 @@ jobs:
                 -D USE_OPENMP=OFF \
                 -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
                 -D USE_XNNPACK=OFF \
-                \
                 -D USE_NNPACK=OFF \
+                \
                 -D USE_VALGRIND=OFF \
                 ..
-                make -j $(nproc)
-                make install/strip
+              make -j $(nproc) fmt cpuinfo_internals cpuinfo clog pthreadpool torch_global_deps ATEN_CPU_FILES_GEN_TARGET
+              make -j $(nproc) torch_global_deps ATEN_CPU_FILES_GEN_TARGET
+              make -j $(nproc) eigen_blas pytorch_qnnpack c10
+              make -j $(nproc) || true
 
-      - name: Display results
+      - name: Display results (part 1)
         if: steps.cache-build-result.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          echo "PWD: $PWD"
+          src=torch-${{ env.TORCH_VERSION }}
+          cd $src
+          sudo chown -R $USER ./build
+          cd ..
+
+          dst=torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
+          mv $src $dst
+
+          tar cjf $dst.tar.bz2 $dst
+
+          ls -lh *.tar.bz2
+
+      - uses: actions/upload-artifact@v4
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        with:
+          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
+          path: ./*.tar.bz2
+
+  part2:
+    needs: [part1]
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }} part 2
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.8"]
+        lib-type: [shared, static]
+        arch: [aarch64]
+
+    steps:
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up QEMU
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Cache build result for ${{ env.TORCH_VERSION }} ${{ matrix.lib-type }}
+        id: cache-build-result-2
+        uses: actions/cache@v4
+        with:
+          path: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}.tar.bz2
+          key: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
+
+      - name: Retrieve artifact from part-1
+        if: steps.cache-build-result-2.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}-part-1
+          path: /tmp/part-1
+
+      - name: Rename
+        if: steps.cache-build-result-2.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          echo "PWD: $PWD"
+          src=torch-${{ env.TORCH_VERSION }}
+          ls -lh /tmp/part-1
+
+          tar xf /tmp/part-1/*.tar.bz2
+
+          ls -lh
+
+          mv torch-linux* $src
+
+          ls -lh
+
+      - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }}
+        if: steps.cache-build-result-2.outputs.cache-hit != 'true'
+        uses: addnab/docker-run-action@v3
+        with:
+            image: quay.io/pypa/manylinux2014_aarch64
+            options: |
+              --volume ${{ github.workspace }}/torch-${{ env.TORCH_VERSION }}/:/shared/
+            shell: bash
+            run: |
+              uname -a
+              gcc --version
+              find /opt -name "python*"
+              export PATH=/opt/_internal/cpython-3.8.19/bin:$PATH
+              python3 --version
+              python3 -m pip install ninja cmake
+              cmake --version
+
+              cd /shared
+              ls -lh
+              pip install -r ./requirements.txt
+              cd build
+
+              make -j $(nproc)
+              make install/strip
+
+      - name: Display results (part 2)
+        if: steps.cache-build-result-2.outputs.cache-hit != 'true'
         shell: bash
         run: |
           cd torch-${{ env.TORCH_VERSION }}
@@ -157,13 +252,13 @@ jobs:
           mv $dst.tar.bz2 ../..
 
       - uses: actions/upload-artifact@v4
-        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        if: steps.cache-build-result-2.outputs.cache-hit != 'true'
         with:
           name: torch-linux-${{ matrix.arch }}-${{ matrix.lib-type }}-v${{ env.TORCH_VERSION }}
           path: ./*.tar.bz2
 
       - name: Publish to huggingface
-        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        if: steps.cache-build-result-2.outputs.cache-hit != 'true'
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         uses: nick-fields/retry@v2
