@@ -3,7 +3,7 @@ name: torch-linux
 on:
   push:
     branches:
-      - torch
+      - torch2
 
   workflow_dispatch:
     inputs:
@@ -108,7 +108,7 @@ jobs:
                 -D CMAKE_BUILD_TYPE=Release \
                 -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
                 -D BUILD_CAFFE2_OPS=OFF \
-                -D BUILD_CUSTOM_PROTOBUF=ON \
+                -D BUILD_CUSTOM_PROTOBUF=OFF \
                 -D BUILD_LITE_INTERPRETER=OFF \
                 -D BUILD_PYTHON=OFF \
                 -D INTERN_BUILD_MOBILE=ON \
@@ -175,7 +175,7 @@ jobs:
                 -D CMAKE_BUILD_TYPE=Release \
                 -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
                 -D BUILD_CAFFE2_OPS=OFF \
-                -D BUILD_CUSTOM_PROTOBUF=ON \
+                -D BUILD_CUSTOM_PROTOBUF=OFF \
                 -D BUILD_LITE_INTERPRETER=OFF \
                 -D BUILD_PYTHON=OFF \
                 -D INTERN_BUILD_MOBILE=ON \
