@@ -1,0 +1,222 @@
+name: torch-macos
+
+on:
+  push:
+    branches:
+      - torch
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version information (e.g., 2.3.0)"
+        required: true
+
+env:
+  TORCH_VERSION:
+    |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
+    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.0' }}
+
+jobs:
+  torch-macos:
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }} cxx11-abi ${{ matrix.cxx11-abi }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13
+            python-version: "3.8"
+            lib-type: "shared"
+            cxx11-abi: "yes"
+            arch: "x64"
+
+          - os: macos-13
+            python-version: "3.8"
+            lib-type: "shared"
+            cxx11-abi: "no"
+            arch: "x64"
+
+          - os: macos-13
+            python-version: "3.8"
+            lib-type: "static"
+            cxx11-abi: "yes"
+            arch: "x64"
+
+          - os: macos-13
+            python-version: "3.8"
+            lib-type: "static"
+            cxx11-abi: "no"
+            arch: "x64"
+
+          - os: macos-14
+            python-version: "3.8"
+            lib-type: "shared"
+            cxx11-abi: "yes"
+            arch: "arm64"
+
+          - os: macos-14
+            python-version: "3.8"
+            lib-type: "shared"
+            cxx11-abi: "no"
+            arch: "arm64"
+
+          - os: macos-14
+            python-version: "3.8"
+            lib-type: "static"
+            cxx11-abi: "yes"
+            arch: "arm64"
+
+          - os: macos-14
+            python-version: "3.8"
+            lib-type: "static"
+            cxx11-abi: "no"
+            arch: "arm64"
+
+    steps:
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache build result for ${{ env.TORCH_VERSION }} ${{ matrix.lib-type }}
+        id: cache-build-result
+        uses: actions/cache@v4
+        with:
+          path: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}.tar.bz2
+          key: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+
+      - name: Download PyTorch ${{ env.TORCH_VERSION }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          version=${{ env.TORCH_VERSION }}
+          curl -SL -O https://github.com/pytorch/pytorch/releases/download/v$version/pytorch-v$version.tar.gz
+          tar xf pytorch-v$version.tar.gz
+
+          mv pytorch-v$version torch-$version
+
+      - name: Build torch ${{ env.TORCH_VERSION }} for ${{ matrix.arch }} ${{ matrix.lib-type }} ${{ matrix.cxx11-abi }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          uname -a
+
+          python3 --version
+          python3 -m pip install ninja cmake
+
+          which gcc python3 cmake
+
+          gcc --version
+
+          cmake --version
+          version=${{ env.TORCH_VERSION }}
+          cd torch-$version
+          ls -lh
+          pip install -r ./requirements.txt
+          if [[ ${{ matrix.lib-type }} == "shared" ]]; then
+            BUILD_SHARED_LIBS=ON
+          else
+            BUILD_SHARED_LIBS=OFF
+          fi
+
+          if [[ ${{ matrix.cxx11-abi }} == "yes" ]]; then
+            GLIBCXX_USE_CXX11_ABI=1
+          else
+            GLIBCXX_USE_CXX11_ABI=0
+          fi
+
+          mkdir build
+          cd build
+
+          PYTHON_EXECUTABLE=$(which python3)
+          echo "PYTHON_EXECUTABLE: $PYTHON_EXECUTABLE"
+
+          cmake \
+            -D PYTHON_EXECUTABLE=$PYTHON_EXECUTABLE \
+            -D CMAKE_INSTALL_PREFIX="./install" \
+            -D GLIBCXX_USE_CXX11_ABI=$GLIBCXX_USE_CXX11_ABI \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D BUILD_SHARED_LIBS=$BUILD_SHARED_LIBS \
+            -D BUILD_CAFFE2_OPS=OFF \
+            -D BUILD_CUSTOM_PROTOBUF=OFF \
+            -D BUILD_LITE_INTERPRETER=OFF \
+            -D BUILD_PYTHON=OFF \
+            -D INTERN_BUILD_MOBILE=ON \
+            -D INTERN_DISABLE_AUTOGRAD=ON \
+            -D INTERN_DISABLE_ONNX=ON \
+            -D USE_CUDA=OFF \
+            -D USE_NCCL=OFF \
+            -D USE_DISTRIBUTED=OFF \
+            -D USE_ITT=OFF \
+            -D USE_KINETO=OFF \
+            -D USE_LITE_INTERPRETER_PROFILER=OFF \
+            -D USE_MKLDNN=OFF \
+            -D USE_MPS=OFF \
+            -D USE_NUMPY=OFF \
+            -D USE_OPENMP=OFF \
+            -D USE_SOURCE_DEBUG_ON_MOBILE=OFF \
+            -D USE_XNNPACK=OFF \
+            \
+            -D USE_NNPACK=OFF \
+            -D USE_VALGRIND=OFF \
+            ..
+            make -j 4
+            make install/strip
+
+      - name: Display results
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd torch-${{ env.TORCH_VERSION }}
+
+          sudo chown -R $USER ./build
+
+          ls -lh build/install
+
+          cd build
+
+          dst=torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+
+          mv install $dst
+
+          tar cjvf $dst.tar.bz2 $dst
+
+          mv $dst.tar.bz2 ../..
+
+      - uses: actions/upload-artifact@v4
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        with:
+          name: torch-osx-${{ matrix.arch }}-${{ matrix.lib-type }}-cxx11-abi-${{ matrix.cxx11-abi }}-v${{ env.TORCH_VERSION }}
+          path: ./*.tar.bz2
+
+      - name: Publish to huggingface
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 20
+          timeout_seconds: 200
+          shell: bash
+          command: |
+            git config --global user.email "csukuangfj@gmail.com"
+            git config --global user.name "Fangjun Kuang"
+
+            rm -rf huggingface
+            export GIT_LFS_SKIP_SMUDGE=1
+            export GIT_CLONE_PROTECTION_ACTIVE=false
+
+            ls -lh
+
+            git clone https://huggingface.co/csukuangfj/torch-libs huggingface
+            cd huggingface
+            git pull
+
+            name=torch-osx-*.tar.bz2
+
+            cp -v ../$name .
+
+            git status
+            git add .
+            git commit -m "add $name"
+            git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/torch-libs main
