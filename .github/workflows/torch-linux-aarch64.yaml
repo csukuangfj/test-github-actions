@@ -3,7 +3,7 @@ name: torch-linux-aarch64
 on:
   push:
     branches:
-      - torch
+      - torch2
   workflow_dispatch:
     inputs:
       version:

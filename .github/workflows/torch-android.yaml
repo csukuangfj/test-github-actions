@@ -3,9 +3,18 @@ name: torch-android
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version information (e.g., 2.3.1)"
+        required: true
+
+env:
+  TORCH_VERSION:
+    |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
+    ${{ github.event.release.tag_name || github.event.inputs.version || '2.3.1' }}
 
 jobs:
   torch-android:
@@ -15,7 +24,6 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.8"]
-        torch-version: ["2.3.1"]
         shared_lib: [ON, OFF]
 
     steps:
@@ -24,17 +32,33 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/checkout@v4
-        with:
-          repository: pytorch/pytorch
-          submodules: true
-          ref: v${{ matrix.torch-version }}
-          path: torch-${{ matrix.torch-version }}
+      - name: Download PyTorch ${{ env.TORCH_VERSION }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          version=${{ env.TORCH_VERSION }}
+          curl -SL -O https://github.com/pytorch/pytorch/releases/download/v$version/pytorch-v$version.tar.gz
+          tar xf pytorch-v$version.tar.gz
+
+          mv pytorch-v$version torch-$version
+
+          cd torch-$version
+
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:66
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::LEGACY_deserialize(std::shared_ptr<torch::jit::CompilationUnit>, std::shared_ptr<caffe2::serialize::PyTorchStreamReader>, std::optional<c10::Device> const&)'
+
+          sed -i.bak s'|^#if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)|#if 0|'g ./torch/csrc/jit/serialization/import.cpp
+
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:67
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
+          sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
 
       - name: Install dependencies
         shell: bash
         run: |
-          cd torch-${{ matrix.torch-version }}
+          cd torch-${{ env.TORCH_VERSION }}
           pip install -r ./requirements.txt
 
           sudo apt-get install tree
@@ -54,22 +78,31 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          cd torch-${{ matrix.torch-version }}
+          cd torch-${{ env.TORCH_VERSION }}
           # https://djl.ai/android/pytorch-native/
 
-          cd scripts
-          sed -i.bak s/USE_VULKAN=ON/USE_VULKAN=OFF/g ./build_android.sh
-          cd ..
-          git diff
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:66
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::LEGACY_deserialize(std::shared_ptr<torch::jit::CompilationUnit>, std::shared_ptr<caffe2::serialize::PyTorchStreamReader>, std::optional<c10::Device> const&)'
+
+          sed -i.bak s'|^#if !defined(C10_MOBILE) && !defined(C10_DISABLE_LEGACY_IMPORT)|#if 0|'g ./torch/csrc/jit/serialization/import.cpp
+
+          # To fix the following error
+          # https://github.com/csukuangfj/torch-libs/actions/runs/9709473947/job/26798232025#step:5:67
+          # /usr/bin/ld: /home/runner/work/torch-libs/torch-libs/build/_deps/torch_libs-src/lib/libtorch_cpu.so: undefined reference to `torch::jit::writeArchiveAndTensors(std::string const&, char const*, unsigned long, std::vector<at::Tensor, std::allocator<at::Tensor> > const&, caffe2::serialize::PyTorchStreamWriter&)'
+          sed -i.bak s'|^#ifndef C10_MOBILE|#if 0|'g ./torch/csrc/jit/serialization/pickle.cpp
+
+          sed -i.bak s/USE_VULKAN=ON/USE_VULKAN=OFF/g ./scripts/build_android.sh
+
+          sed -i.bak s"/Use Vulkan GPU backend\" ON/Use Vulkan GPU backend\" OFF/g" ./CMakeLists.txt
 
           export BUILD_LITE_INTERPRETER=0
-          export USE_VULKAN=OFF
           ./scripts/build_pytorch_android.sh arm64-v8a,armeabi-v7a,x86,x86_64
 
       - name: Display
         shell: bash
         run: |
-          cd torch-${{ matrix.torch-version }}
+          cd torch-${{ env.TORCH_VERSION }}
           echo '---build_android_arm64-v8a---'
           ls -lh build_android_arm64-v8a
           tree build_android_arm64-v8a
@@ -89,7 +122,7 @@ jobs:
       - name: Zip
         shell: bash
         run: |
-          cd torch-${{ matrix.torch-version }}
+          cd torch-${{ env.TORCH_VERSION }}
 
           cd build_android_arm64-v8a && zip -r ~/arm64-v8a_native.zip install/include lib && cd ..
           cd build_android_armeabi-v7a && zip -r ~/armeabi-v7a_native.zip install/include lib && cd ..
@@ -102,5 +135,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: torch-${{ matrix.torch-version }}
+          name: torch-${{ env.TORCH_VERSION }}
           path: ./*.zip
