@@ -23,11 +23,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-latest]
         python-version: ["3.8"]
         lib-type: [shared, static]
         cxx11-abi: [yes, no]
-        arch: [x64, aarch64]
+        # arch: [x64, aarch64]
+        arch: [aarch64]
 
     steps:
       - name: Setup Python ${{ matrix.python-version }}
