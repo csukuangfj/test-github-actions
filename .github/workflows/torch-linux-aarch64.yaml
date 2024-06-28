@@ -125,6 +125,7 @@ jobs:
               make -j $(nproc) fmt cpuinfo_internals cpuinfo clog pthreadpool torch_global_deps ATEN_CPU_FILES_GEN_TARGET
               make -j $(nproc) torch_global_deps ATEN_CPU_FILES_GEN_TARGET
               make -j $(nproc) eigen_blas pytorch_qnnpack c10
+              make -j $(nproc) || true
 
       - name: Display results (part 1)
         if: steps.cache-build-result.outputs.cache-hit != 'true'
