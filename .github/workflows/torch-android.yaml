@@ -3,7 +3,7 @@ name: torch-android
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
     inputs:
@@ -33,6 +33,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.os }}-${{ matrix.shared_lib }}-${{ matrix.abi }}
 
       - name: Download PyTorch ${{ env.TORCH_VERSION }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
@@ -108,6 +113,9 @@ jobs:
 
           export ANDROID_NDK_LATEST_HOME=$ANDROID_NDK
 
+          export CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+
           cd torch-${{ env.TORCH_VERSION }}
           # https://djl.ai/android/pytorch-native/
 
@@ -118,6 +126,10 @@ jobs:
           fi
 
           sed -i.bak s"/Use Vulkan GPU backend\" ON/Use Vulkan GPU backend\" OFF/g" ./CMakeLists.txt
+
+          # For v2.3.0 and v2.3.1. Need to update for later versions of PyTorch
+          # disable running gradlew
+          sed -i.bak '43,51d' ./scripts/build_pytorch_android.sh
 
           export BUILD_LITE_INTERPRETER=0
 
@@ -136,27 +148,36 @@ jobs:
           ls -lh build_android_$abi/install/include
 
           echo "---"
-          ls -lh build_android_$abi/lib
+          ls -lh build_android_$abi/install
 
-          tree build_android_$abi
+          tar cfj ./build_android_$abi.tar.bz2 ./build_android_$abi
+          mv build_android_*.tar.bz2 ../
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: torch-android-build-${{ env.TORCH_VERSION }}-${{ matrix.abi }}
+          path: ./build_android*.tar.bz2
 
-      - name: Zip
+      - name: Collect results ${{ matrix.abi }}
         shell: bash
         run: |
           abi=${{ matrix.abi }}
           cd torch-${{ env.TORCH_VERSION }}
 
-          cd build_android_$abi && zip -r ~/torch-android-$abi.zip install/include lib && cd ..
+          src=build_android_$abi
+          dst=torch-android-$abi
 
-          ls -lh *.zip
+          mv $src/install $dst
+          tar cjf $dst.tar.bz2 $dst
 
-          mv *.zip ..
+          mv $dst.tar.bz2 ..
+
+          # cd build_android_$abi && zip -r ~/torch-android-$abi.zip install/include lib && cd ..
 
       - uses: actions/upload-artifact@v4
         with:
           name: torch-${{ env.TORCH_VERSION }}
-          path: ./*.zip
+          path: ./torch-android-*.tar.bz2
 
       - name: Publish to huggingface ${{ matrix.abi }}
         if: steps.cache-build-result.outputs.cache-hit != 'true'
@@ -181,7 +202,7 @@ jobs:
             cd huggingface
             git pull
 
-            name=torch-*.zip
+            name=torch-android*.tar.bz2
 
             cp -v ../$name .
 
