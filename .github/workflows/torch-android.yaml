@@ -3,7 +3,7 @@ name: torch-android
 on:
   push:
     branches:
-      - torch2
+      - torch
 
   workflow_dispatch:
     inputs:
@@ -18,7 +18,7 @@ env:
 
 jobs:
   torch-android:
-    name: android ${{ matrix.shared_lib }}
+    name: android ${{ matrix.shared_lib }} ${{ matrix.abi }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,6 +26,7 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.8"]
         shared_lib: [ON, OFF]
+        abi: [arm64-v8a, armeabi-v7a, x86, x86_64]
 
     steps:
       - name: Setup Python ${{ matrix.python-version }}
@@ -93,7 +94,7 @@ jobs:
           echo "ANDROID_NDK_LATEST_HOME: ${ANDROID_NDK_LATEST_HOME}"
           ls -lh ${ANDROID_NDK_LATEST_HOME}
 
-      - name: Build
+      - name: Build ${{ matrix.abi }}
         shell: bash
         run: |
           export ANDROID_ROOT=/usr/local/lib/android
@@ -120,44 +121,71 @@ jobs:
 
           export BUILD_LITE_INTERPRETER=0
 
-          export MAX_JOBS=4
-          ./scripts/build_pytorch_android.sh arm64-v8a,armeabi-v7a,x86,x86_64
+          abi=${{ matrix.abi }}
+          ./scripts/build_pytorch_android.sh $abi
 
-      - name: Display
+      - name: Display ${{ matrix.abi }}
         shell: bash
         run: |
+          abi=${{ matrix.abi }}
           cd torch-${{ env.TORCH_VERSION }}
-          echo '---build_android_arm64-v8a---'
-          ls -lh build_android_arm64-v8a
-          tree build_android_arm64-v8a
+          echo '---build_android_$abi---'
+          ls -lh build_android_$abi
 
-          echo '---build_android_armeabi-v7a---'
-          ls -lh build_android_armeabi-v7a
-          tree build_android_armeabi-v7a
+          echo "---"
+          ls -lh build_android_$abi/install/include
 
-          echo '---build_android_x86---'
-          ls -lh build_android_x86
-          tree build_android_x86
+          echo "---"
+          ls -lh build_android_$abi/lib
 
-          echo '---build_android_x86_64---'
-          ls -lh build_android_x86_64
-          tree build_android_x86_64
+          tree build_android_$abi
+
 
       - name: Zip
         shell: bash
         run: |
+          abi=${{ matrix.abi }}
           cd torch-${{ env.TORCH_VERSION }}
 
-          cd build_android_arm64-v8a && zip -r ~/arm64-v8a_native.zip install/include lib && cd ..
-          cd build_android_armeabi-v7a && zip -r ~/armeabi-v7a_native.zip install/include lib && cd ..
-          cd build_android_x86 && zip -r ~/x86_native.zip install/include lib && cd ..
-          cd build_android_x86_64 && zip -r ~/x86_64_native.zip install/include lib && cd ..
+          cd build_android_$abi && zip -r ~/torch-android-$abi.zip install/include lib && cd ..
 
           ls -lh *.zip
 
-          mv *native*.zip ..
+          mv *.zip ..
 
       - uses: actions/upload-artifact@v4
         with:
           name: torch-${{ env.TORCH_VERSION }}
           path: ./*.zip
+
+      - name: Publish to huggingface ${{ matrix.abi }}
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        uses: nick-fields/retry@v2
+        with:
+          max_attempts: 20
+          timeout_seconds: 200
+          shell: bash
+          command: |
+            git config --global user.email "csukuangfj@gmail.com"
+            git config --global user.name "Fangjun Kuang"
+
+            rm -rf huggingface
+            export GIT_LFS_SKIP_SMUDGE=1
+            export GIT_CLONE_PROTECTION_ACTIVE=false
+
+            ls -lh
+
+            git clone https://huggingface.co/csukuangfj/torch-libs huggingface
+            cd huggingface
+            git pull
+
+            name=torch-*.zip
+
+            cp -v ../$name .
+
+            git status
+            git add .
+            git commit -m "add $name"
+            git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/torch-libs main
