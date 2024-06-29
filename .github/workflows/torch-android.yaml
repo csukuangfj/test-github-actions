@@ -147,15 +147,32 @@ jobs:
           echo "---"
           ls -lh build_android_$abi/install/include
 
-          echo "---"
+          echo "---install---"
           ls -lh build_android_$abi/install
 
-          tar cfj ./build_android_$abi.tar.bz2 ./build_android_$abi
+          echo "---install/include---"
+          ls -lh build_android_$abi/install/include
+
+          echo "---install/lib---"
+          ls -lh build_android_$abi/install/lib
+
+          echo "---install/share---"
+          ls -lh build_android_$abi/install/share
+          if [[ ${{ matrix.shared_lib }} == ON ]]; then
+            lib_type=shared
+          else
+            lib_type=static
+          fi
+
+          tar cfj ./build_android_${lib_type}_$abi.tar.bz2 ./build_android_$abi
+
+          ls -lh *.tar.bz2
+
           mv build_android_*.tar.bz2 ../
 
       - uses: actions/upload-artifact@v4
         with:
-          name: torch-android-build-${{ env.TORCH_VERSION }}-${{ matrix.abi }}
+          name: torch-android-build-${{ env.TORCH_VERSION }}-${{ matrix.shared_lib }}-${{ matrix.abi }}
           path: ./build_android*.tar.bz2
 
       - name: Collect results ${{ matrix.abi }}
@@ -164,8 +181,14 @@ jobs:
           abi=${{ matrix.abi }}
           cd torch-${{ env.TORCH_VERSION }}
 
+          if [[ ${{ matrix.shared_lib }} == ON ]]; then
+            lib_type=shared
+          else
+            lib_type=static
+          fi
+
           src=build_android_$abi
-          dst=torch-android-$abi
+          dst=torch-android-${lib_type}-$abi
 
           mv $src/install $dst
           tar cjf $dst.tar.bz2 $dst
@@ -176,7 +199,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: torch-${{ env.TORCH_VERSION }}
+          name: torch-android-${{ env.TORCH_VERSION }}-${{ matrix.shared_lib }}-${{ matrix.abi }}
           path: ./torch-android-*.tar.bz2
 
       - name: Publish to huggingface ${{ matrix.abi }}
