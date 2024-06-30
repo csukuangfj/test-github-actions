@@ -1,0 +1,35 @@
+name: tuxtype
+
+on:
+  push:
+    branches:
+      - torch
+
+jobs:
+  tuxtype:
+    name: ${{ matrix.arch }} ${{ matrix.lib-type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Build tuxtype
+        if: steps.cache-build-result.outputs.cache-hit != 'true'
+        uses: addnab/docker-run-action@v3
+        with:
+            image: quay.io/pypa/manylinux2014_x86_64
+            options: |
+              --volume ${{ github.workspace }}:/shared/
+            shell: bash
+            run: |
+              uname -a
+              gcc --version
+              git clone https://github.com/tux4kids/tuxtype
+              cd tuxtype
+              ls -lh
+              echo "---"
+              ./autogen.sh
+              echo "---"
+
