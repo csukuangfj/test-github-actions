@@ -28,8 +28,12 @@ jobs:
               gcc --version
               git clone https://github.com/tux4kids/tuxtype
               cd tuxtype
+              git checkout fa5b
               ls -lh
               echo "---"
               ./autogen.sh
               echo "---"
+              ./configure --prefix=$PWD/install
+              make
+              make install
 
