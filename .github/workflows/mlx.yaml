@@ -1,0 +1,48 @@
+name: mlx
+
+on:
+  push:
+    branches:
+      - mlx
+
+jobs:
+  macos-mlx:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-13]
+        # python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.10"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download mlx
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/ml-explore/mlx
+
+      - name: Build mlx
+        shell: bash
+        run: |
+          cd mlx
+          mkdir build
+          cd build
+          cmake \
+            -D MLX_ENABLE_X64_MAC=ON \
+            -D MLX_BUILD_TESTS=OFF \
+            -D MLX_BUILD_EXAMPLES=OFF \
+            -D MLX_BUILD_METAL=ON \
+            -D MLX_BUILD_GGUF=OFF \
+            -D MLX_BUILD_SAFETENSORS=OFF \
+            -D BUILD_SHARED_LIBS=ON \
+            -D CMAKE_INSTALL_PREFIX=./install \
+            ..
+
+          make
+          make install
+          ls -lh install/*
+          find ./install
