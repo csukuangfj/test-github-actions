@@ -23,8 +23,8 @@ jobs:
       - name: Download mlx
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/ml-explore/mlx
-          mv mlx/* ./
+          git clone --depth 1 https://github.com/ml-explore/mlx mlx-2
+          mv mlx-2/* ./
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
