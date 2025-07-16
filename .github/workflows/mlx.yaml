@@ -8,6 +8,7 @@ on:
 jobs:
   macos-mlx-wheel:
     if: true
+    name: ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,11 +27,13 @@ jobs:
           git clone --depth 1 https://github.com/ml-explore/mlx mlx-2
           mv mlx-2/* ./
 
+          sed -i.bak "s/3\.9/3\.8/g" ./setup.py
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_BUILD: "${{ matrix.python-version}}-* "
-          CIBW_ENVIRONMENT: CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES='x86_64' -DMLX_ENABLE_X64_MAC=ON -DMLX_BUILD_METAL=ON -DMLX_BUILD_GGUF=ON -DMLX_BUILD_SAFETENSORS=ON -DCMAKE_BUILD_TYPE=Release" MACOSX_DEPLOYMENT_TARGET=10.13 CFLAGS="-mmacosx-version-min=10.13" CXXFLAGS="-mmacosx-version-min=10.13"
+          CIBW_ENVIRONMENT: CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES='x86_64' -DMLX_ENABLE_X64_MAC=ON -DMLX_BUILD_METAL=ON -DMLX_BUILD_GGUF=ON -DMLX_BUILD_SAFETENSORS=ON -DCMAKE_BUILD_TYPE=Release" MACOSX_DEPLOYMENT_TARGET=10.15 CFLAGS="-mmacosx-version-min=10.15" CXXFLAGS="-mmacosx-version-min=10.15"  PYPI_RELEASE=1
           CIBW_ARCHS: "x86_64"
           CIBW_BUILD_VERBOSITY: 3
 
