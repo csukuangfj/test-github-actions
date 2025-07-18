@@ -3,7 +3,7 @@ name: mlx
 on:
   push:
     branches:
-      - mlx
+      - mlx-2
 
 jobs:
   macos-mlx-wheel:
