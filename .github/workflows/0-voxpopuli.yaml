@@ -31,6 +31,28 @@ jobs:
         shell: bash
         run: |
           pip install --upgrade huggingface_hub
+- name: Free up disk space
+        run: |
+          # 查看当前磁盘使用情况
+          df -h
+
+          # 移除不必要的工具和包
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+
+          # 移除大型预安装软件（根据需求选择）
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /var/cache/apt/archives/*
+          sudo rm -rf /usr/share/swift
+
+          # 扩展磁盘空间（将未分配空间挂载到 /mnt）
+          sudo parted /dev/sda resizepart 1 -1
+          sudo resize2fs /dev/sda1
+
+          # 再次查看磁盘使用情况确认
+          df -h
 
       - name: Test
         env:
