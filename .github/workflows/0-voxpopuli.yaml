@@ -1,4 +1,4 @@
-name: ubuntu
+name: a-voxpopuli
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  ubuntu:
+  a_voxpopuli:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -30,7 +30,7 @@ jobs:
       - name: Test
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        shell: bash
+        uses: nick-fields/retry@v3
         with:
           max_attempts: 20
           timeout_seconds: 200
