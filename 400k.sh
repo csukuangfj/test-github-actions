@@ -563,8 +563,8 @@ git config --global user.email "csukuangfj@gmail.com"
 
 if [ ! -d hf ]; then
   git clone https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli hf
+  hf lfs-enable-largefiles ./hf
 fi
-
 
 n=552
 i=0
@@ -578,8 +578,9 @@ for url in ${urls[@]}; do
   if [ ! -f hf/.${name}.done ]; then
     pushd hf
 
-    curl -C - -SL -O $url
+    curl -C - -SL -O $url -s -w "\rDownloaded: %{size_download} bytes"
     touch .${name}.done
+    ls -lh $name
     git lfs track "*.tar"
     git add .
     git commit -m "add $name"
