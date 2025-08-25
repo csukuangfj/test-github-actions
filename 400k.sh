@@ -584,6 +584,8 @@ for url in ${urls[@]}; do
     git add .
     git commit -m "add $name"
     git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli main
+    git lfs prune
+    rm -rf ~/.git/lfs
     popd
     rm -rf hf
     git clone https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli hf
