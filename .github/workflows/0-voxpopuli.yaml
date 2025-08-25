@@ -38,7 +38,7 @@ jobs:
         uses: nick-fields/retry@v3
         with:
           max_attempts: 20
-          timeout_seconds: 200
+          timeout_seconds: 8000
           shell: bash
           command: |
             export GIT_LFS_SKIP_SMUDGE=1
