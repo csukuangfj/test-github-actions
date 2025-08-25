@@ -561,10 +561,8 @@ fi
 git config --global user.name "Fangjun Kuang"
 git config --global user.email "csukuangfj@gmail.com"
 
-if [ ! -d hf ]; then
-  git clone https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli hf
-  hf lfs-enable-largefiles ./hf
-fi
+
+git clone https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli hf
 
 n=552
 i=0
@@ -576,6 +574,7 @@ for url in ${urls[@]}; do
   echo "name: $name"
 
   if [ ! -f hf/.${name}.done ]; then
+    hf lfs-enable-largefiles ./hf
     pushd hf
 
     curl -C - -SL -O $url -s -w "\rDownloaded: %{size_download} bytes"
@@ -586,5 +585,7 @@ for url in ${urls[@]}; do
     git commit -m "add $name"
     git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli main
     popd
+    rm -rf hf
+    git clone https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli hf
   fi
 done
