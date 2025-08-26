@@ -7,6 +7,10 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: a-voxpopuli-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   a_voxpopuli:
     runs-on: ${{ matrix.os }}
@@ -27,12 +31,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        shell: bash
-        run: |
-          pip install --upgrade huggingface_hub
-
       - name: Free up disk space
+        if: false
         run: |
           df -h
 
@@ -50,7 +50,8 @@ jobs:
 
           df -h
 
-      - name: Free space
+      - name: Free spac
+        if: false
         shell: bash
         run: |
           df -h
@@ -58,6 +59,7 @@ jobs:
           df -h
 
       - name: Free more space
+        if: false
         shell: bash
         run: |
           # https://github.com/orgs/community/discussions/25678
@@ -69,6 +71,7 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
       - name: Free Disk Space (Ubuntu)
+        if: false
         uses: jlumbroso/free-disk-space@main
         with:
           # this might remove tools that are actually needed,
@@ -85,9 +88,15 @@ jobs:
           swap-storage: true
 
       - name: Check space
+        if: false
         shell: bash
         run: |
           df -h
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          pip install --upgrade huggingface_hub
 
       - name: Test
         env:
@@ -98,11 +107,19 @@ jobs:
           timeout_seconds: 9000000
           shell: bash
           command: |
+            df -h
             export GIT_LFS_SKIP_SMUDGE=1
             export GIT_CLONE_PROTECTION_ACTIVE=false
 
             git config --global user.email "csukuangfj@gmail.com"
             git config --global user.name "Fangjun Kuang"
+
+            sudo mkdir /mnt/me
+            sudo chown -R $USER /mnt/me
+            cp 400k.sh /mnt/me
+
+            cd /mnt/me
+            ls -lh
             rm -rf hf
 
             ./400k.sh
