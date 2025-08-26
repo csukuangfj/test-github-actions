@@ -13,8 +13,8 @@ https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2018.tar
 https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2019.tar
 https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2020.tar
 https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2009_2.tar
-https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2010_2.tar
-https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2011_2.tar
+# https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2010_2.tar
+# https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2011_2.tar
 https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2012_2.tar
 https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2013_2.tar
 https://dl.fbaipublicfiles.com/voxpopuli/audios/en_2014_2.tar
@@ -578,12 +578,17 @@ for url in ${urls[@]}; do
     pushd hf
 
     curl -C - -SL -O $url -s -w "\rDownloaded: %{size_download} bytes"
-    touch .${name}.done
     ls -lh $name
     git lfs track "*.tar"
     git add .
     git commit -m "add $name"
     git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli main
+
+    touch .${name}.done
+    git add .
+    git commit -m "add .${name}.done"
+    git push https://csukuangfj:$HF_TOKEN@huggingface.co/csukuangfj/voxpopuli main
+
     git lfs prune
     rm -rf ~/.git/lfs
     popd
