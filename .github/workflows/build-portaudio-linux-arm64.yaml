@@ -1,0 +1,94 @@
+name: portaudio-linux-arm64
+
+on:
+  push:
+    branches:
+      - build-portaudiol-linux-arm64
+
+jobs:
+  ubuntu:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04-arm]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build portaudio
+        uses: addnab/docker-run-action@v3
+        with:
+            image: quay.io/pypa/manylinux2014_aarch64
+            options: |
+              --volume ${{ github.workspace }}/:/home/runner/work/abc
+            shell: bash
+            run: |
+              uname -a
+              gcc --version
+              cmake --version
+              cat /etc/*release
+              id
+              pwd
+
+              cd /home/runner/work/abc
+
+              git clone --depth 1 --branch v1.2.12 https://github.com/alsa-project/alsa-lib
+              pushd alsa-lib
+              ./gitcompile
+              popd
+
+              export CPLUS_INCLUDE_PATH=$PWD/alsa-lib/include:$CPLUS_INCLUDE_PATH
+              export C_INCLUDE_PATH=$PWD/alsa-lib/include:$C_INCLUDE_PATH
+
+              p=$PWD
+
+
+              git clone https://github.com/PortAudio/portaudio
+              cd portaudio
+              sed -i.bak '/SOVERSION/d' ./CMakeLists.txt
+              sed -i.bak '/PROJECT_VERSION/d' ./CMakeLists.txt
+
+              git diff
+              mkdir build
+              cd build
+              cmake \
+                -DALSA_INCLUDE_DIR=$p/alsa-lib/include \
+                -DALSA_LIBRARY=$p/alsa-lib/src/.libs/libasound.so \
+                -DBUILD_SHARED_LIBS=ON \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX=/home/runner/work/abc \
+                ..
+
+              cat CMakeCache.txt
+
+              make install
+              find . -name "libportaudio*"
+
+      - name: Show
+        shell: bash
+        run: |
+          ls -lh
+
+          ls -lh lib64/*.so*
+
+      - name: Show
+        shell: bash
+        run: |
+          cd lib64/
+          file libportaudio.so
+          ls -lh libportaudio.so
+          ldd libportaudio.so
+
+          strings libportaudio.so | grep "^GLIBC"
+
+          cp libportaudio.so ../
+
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libportaudio.so
+          path: ./libportaudio.so
+
