@@ -3,7 +3,7 @@ name: ubuntu
 on:
   push:
     branches:
-      - docker
+      - test-1
 
   workflow_dispatch:
 
@@ -18,12 +18,12 @@ jobs:
         python-version: ["3.8"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -33,3 +33,18 @@ jobs:
           echo "github.repository_owner: ${{ github.repository_owner }}"
           echo "github.event_name: ${{ github.event_name }}"
           echo "github.ref: ${{ github.ref }}"
+
+      - name: Download
+        shell: bash
+        run: |
+          wget https://www.modelscope.cn/models/csukuangfj/2025-10-14/resolve/master/2025-11-24-nemo/encoder-external.data
+          GIT_LFS_SKIP_SMUDGE=1 git clone https://huggingface.co/csukuangfj/tmp hf
+          cd hf
+          git config user.name "fangjun"
+          git config user.email "csukuangfj@gmail.com"
+          mv ../encoder-external.data .
+          git lfs track "*.data"
+          git commit -m 'first commit"
+          git push https://huggingface.co/csukuangfj/tmp
+
+
