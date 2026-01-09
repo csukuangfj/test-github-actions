@@ -1,0 +1,43 @@
+name: build-gcc11-manylinux2014-aarch64
+
+on:
+  push:
+    branches: [gcc-11-aarch64]
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Buildx is required for cache + multi-platform correctness
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push GCC 11 manylinux2014 image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./gcc-11-aarch64
+          file: ./gcc-11-aarch64/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/manylinux2014-aarch64-gcc11:11.4.0
+            ghcr.io/${{ github.repository_owner }}/manylinux2014-aarch64-gcc11:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
