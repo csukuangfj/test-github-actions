@@ -34,7 +34,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/io \
-            messense/manylinux2014-cross:armv7l-arm64 \
+            messense/manylinux2014-cross:armv7l \
             bash -c "
               set -e
               uname -m
