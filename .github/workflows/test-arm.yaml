@@ -37,6 +37,21 @@ jobs:
             image: messense/manylinux2014-cross:armv7l-arm64
             shell: bash
             run: |
+              apt-get update
+              apt-get install -y curl ca-certificates gnupg
+
+              curl -fsSL https://apt.llvm.org/llvm.sh | bash -s -- 16
+
+              apt-get install -y \
+                clang-16 lld-16 \
+                libc++-16-dev libc++abi-16-dev \
+                file binutils
+
+              clang-16 --version
+
+              ls /usr/armv7-unknown-linux-gnueabihf/sysroot
+
+
               # find / -name "*gcc*"
 
               uname -a
