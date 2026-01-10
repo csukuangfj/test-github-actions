@@ -42,19 +42,20 @@ jobs:
               uname -a
               which gcc
 
-              gcc --version
-              g++ --version
-              ldd --version
+              ls -lh /usr/armv7-unknown-linux-gnueabihf/bin
 
-              echo "---"
-              file $(which gcc)
+              export PATH=/usr/armv7-unknown-linux-gnueabihf/bin:$PATH
 
-              arm-linux-gnueabihf-gcc --version
-              arm-linux-gnueabihf-g++ --version
+              export CC=armv7-unknown-linux-gnueabihf-gcc
+              export CXX=armv7-unknown-linux-gnueabihf-g++
+              export AR=armv7-unknown-linux-gnueabihf-ar
+              export RANLIB=armv7-unknown-linux-gnueabihf-ranlib
 
               echo 'int main(){return 0;}' > t.c
-              arm-linux-gnueabihf-gcc t.c -o t
+              armv7-unknown-linux-gnueabihf-gcc t.c -o t
+
               file t
+
               strings t | grep ^GLIBC
 
 
