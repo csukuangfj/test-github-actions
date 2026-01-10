@@ -45,50 +45,43 @@ jobs:
               find / -maxdepth 4 -type d | grep gnueabihf | head -50
               echo "---"
 
-              # SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
+              find / -name libc.so.6
+
+              # /usr/bin/arm-linux-gnueabihf-gcc-11
+              # /usr/bin/arm-linux-gnueabihf-gcc
               #
-              # ls -lh $SYSROOT
-              #
-              # strings $SYSROOT/lib/libc.so.6 | grep ^GLIBC
-              #
-              #
-              #
-              #
-              # cat > test.cc <<'EOF'
-              # #include <iostream>
-              # #include <vector>
-              #
-              # int main() {
-              #     std::vector<int> v = {1, 2, 3};
-              #     std::cout << "hello armv7, size=" << v.size() << std::endl;
-              #     return 0;
-              # }
-              # EOF
-              #
-              # SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
+              arm-linux-gnueabihf-gcc --verison
+
+              ls -lh /usr/bin/arm-linux-gnueabihf*
+              file /usr/bin/arm-linux-gnueabihf*
 
 
+              cat > test.cc <<'EOF'
+              #include <iostream>
+              #include <vector>
 
+              int main() {
+                  std::vector<int> v = {1, 2, 3};
+                  std::cout << "hello armv7, size=" << v.size() << std::endl;
+                  return 0;
+              }
+              EOF
               find / -name "*gcc*"
 
               uname -a
               which gcc
 
-              ls -lh /usr/armv7-unknown-linux-gnueabihf/bin
+              # export CC=armv7-linux-gnueabihf-gcc
+              # export CXX=armv7-linux-gnueabihf-g++
+              # export AR=armv7-linux-gnueabihf-ar
+              # export RANLIB=armv7-linux-gnueabihf-ranlib
 
-              export PATH=/usr/armv7-unknown-linux-gnueabihf/bin:$PATH
-
-              export CC=armv7-unknown-linux-gnueabihf-gcc
-              export CXX=armv7-unknown-linux-gnueabihf-g++
-              export AR=armv7-unknown-linux-gnueabihf-ar
-              export RANLIB=armv7-unknown-linux-gnueabihf-ranlib
-
-              armv7-unknown-linux-gnueabihf-gcc --version
-              which armv7-unknown-linux-gnueabihf-gcc
-              file $(which armv7-unknown-linux-gnueabihf-gcc)
+              armv7-linux-gnueabihf-gcc --version
+              which armv7-linux-gnueabihf-gcc
+              file $(which armv7-linux-gnueabihf-gcc)
 
               echo 'int main(){return 0;}' > t.c
-              armv7-unknown-linux-gnueabihf-gcc t.c -o t
+              armv7-linux-gnueabihf-gcc t.c -o t
 
               file t
 
