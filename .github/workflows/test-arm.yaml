@@ -51,6 +51,40 @@ jobs:
 
               ls /usr/armv7-unknown-linux-gnueabihf/sysroot
 
+              strings /usr/armv7-unknown-linux-gnueabihf/sysroot/lib/libc.so.6 | grep ^GLIBC
+
+              cat > test.cc <<'EOF'
+              #include <iostream>
+              #include <vector>
+
+              int main() {
+                  std::vector<int> v = {1, 2, 3};
+                  std::cout << "hello armv7, size=" << v.size() << std::endl;
+                  return 0;
+              }
+              EOF
+
+              SYSROOT=/usr/armv7-unknown-linux-gnueabihf/sysroot
+
+
+              clang-16 \
+                --target=armv7-unknown-linux-gnueabihf \
+                --sysroot=$SYSROOT \
+                -march=armv7-a \
+                -mfpu=neon \
+                -mfloat-abi=hard \
+                -std=gnu++17 \
+                test.cc \
+                -o test_armv7 \
+                -fuse-ld=lld \
+                -lc++ -lc++abi
+
+              ls -lh test_armv7
+              file test_armv7
+              strings test_armv7 | grep ^GLIBC
+
+              exit 0
+
 
               # find / -name "*gcc*"
 
