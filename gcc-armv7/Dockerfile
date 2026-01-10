@@ -6,7 +6,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # ------------------------------------------------------------
-# Base build dependencies (crosstool-ng 官方推荐)
+# Base build dependencies
 # ------------------------------------------------------------
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     file \
     rsync \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
@@ -49,36 +50,43 @@ RUN git clone https://github.com/crosstool-ng/crosstool-ng.git && \
 ENV PATH="/opt/crosstool-ng/bin:${PATH}"
 
 # ------------------------------------------------------------
-# Prepare build directories
+# ⭐ Create non-root user for ct-ng
 # ------------------------------------------------------------
-RUN mkdir -p \
-    /opt/build \
-    /opt/x-tools \
-    /root/.ct-ng
+RUN useradd -m -s /bin/bash builder && \
+    echo "builder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+# Toolchain output directories
+RUN mkdir -p /opt/build /opt/x-tools && \
+    chown -R builder:builder /opt/build /opt/x-tools /opt/crosstool-ng
+
+# ------------------------------------------------------------
+# Switch to builder user ⭐
+# ------------------------------------------------------------
+USER builder
 WORKDIR /opt/build
+
+# ct-ng expects this
+RUN mkdir -p /home/builder/.ct-ng
 
 # ------------------------------------------------------------
 # Copy ct-ng config
 # ------------------------------------------------------------
-COPY ct-ng-armv7-gcc11.config .config
+COPY --chown=builder:builder ct-ng-armv7-gcc11.config .config
 
-# Normalize config (important!)
 RUN ct-ng olddefconfig
 
 # ------------------------------------------------------------
-# Build toolchain (this is the long step)
+# Build toolchain (LONG STEP)
 # ------------------------------------------------------------
 RUN ct-ng build
 
 # ============================================================
-# Stage 2: runtime / usage image (smaller)
+# Stage 2: runtime image
 # ============================================================
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Runtime deps (enough to compile projects)
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -88,18 +96,14 @@ RUN apt-get update && apt-get install -y \
     file \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy toolchain
 COPY --from=0 /opt/x-tools /opt/x-tools
 
-# Export toolchain
 ENV PATH="/opt/x-tools/armv7-unknown-linux-gnueabihf/bin:${PATH}"
 ENV CC=armv7-unknown-linux-gnueabihf-gcc
 ENV CXX=armv7-unknown-linux-gnueabihf-g++
 ENV AR=armv7-unknown-linux-gnueabihf-ar
 ENV LD=armv7-unknown-linux-gnueabihf-ld
-ENV STRIP=armv7-unknown-linux-gnueabihf-strip
 
 WORKDIR /work
-
 CMD ["/bin/bash"]
 
