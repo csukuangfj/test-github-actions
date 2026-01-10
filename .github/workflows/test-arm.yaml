@@ -30,6 +30,11 @@ jobs:
         with:
           platforms: arm
 
+      - name: Login to quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+
       - name: Build
         uses: addnab/docker-run-action@v3
         with:
