@@ -3,7 +3,7 @@ name: ubuntu
 on:
   push:
     branches:
-      - test-arm-2
+      - test-arm
 
   workflow_dispatch:
 
@@ -34,7 +34,8 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
             # see https://github.com/rust-cross/manylinux-cross
-            image: messense/manylinux2014-cross:armv7l-arm64
+            # image: messense/manylinux2014-cross:armv7l-arm64
+            image: messense/manylinux_2_28-cross:armv7l-arm64
             shell: bash
             run: |
               find / -maxdepth 4 -type d | grep armv7
@@ -42,67 +43,31 @@ jobs:
               find / -maxdepth 4 -type d | grep gnueabihf | head -50
               echo "---"
 
-              SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
-
-              ls -lh $SYSROOT
-
-              strings $SYSROOT/lib/libc.so.6 | grep ^GLIBC
-
-
-
-
-              apt-get update
-              apt-get install -y curl ca-certificates gnupg
-
-              curl -fsSL https://apt.llvm.org/llvm.sh | bash -s -- 16
-
-              apt-get install -y \
-                clang-16 lld-16 \
-                libc++-16-dev libc++abi-16-dev \
-                file binutils
-
-              clang-16 --version
-
-              cat > test.cc <<'EOF'
-              #include <iostream>
-              #include <vector>
-
-              int main() {
-                  std::vector<int> v = {1, 2, 3};
-                  std::cout << "hello armv7, size=" << v.size() << std::endl;
-                  return 0;
-              }
-              EOF
-
-              SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
+              # SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
+              #
+              # ls -lh $SYSROOT
+              #
+              # strings $SYSROOT/lib/libc.so.6 | grep ^GLIBC
+              #
+              #
+              #
+              #
+              # cat > test.cc <<'EOF'
+              # #include <iostream>
+              # #include <vector>
+              #
+              # int main() {
+              #     std::vector<int> v = {1, 2, 3};
+              #     std::cout << "hello armv7, size=" << v.size() << std::endl;
+              #     return 0;
+              # }
+              # EOF
+              #
+              # SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
 
 
-              clang-16 \
-                --target=armv7-unknown-linux-gnueabihf \
-                --sysroot=$SYSROOT \
-                -march=armv7-a \
-                -mfpu=neon \
-                -mfloat-abi=hard \
-                -std=gnu++17 \
-                -stdlib=libc++ \
-                -nostdinc++ \
-                -isystem /usr/include/c++/v1 \
-                test.cc \
-                -o test_armv7 \
-                -fuse-ld=lld \
-                -lc++ -lc++abi
 
-              ls -lh test_armv7
-              file test_armv7
-              strings test_armv7 | grep ^GLIBC
-              readelf -d test_armv7
-              echo "---"
-              readelf -l test_armv7
-
-              exit 0
-
-
-              # find / -name "*gcc*"
+              find / -name "*gcc*"
 
               uname -a
               which gcc

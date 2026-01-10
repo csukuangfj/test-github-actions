@@ -78,7 +78,11 @@ RUN ct-ng olddefconfig
 # ------------------------------------------------------------
 # Build toolchain (LONG STEP)
 # ------------------------------------------------------------
-RUN ct-ng build
+RUN ct-ng build || ( \
+    echo "========== ct-ng FAILED ==========" && \
+    echo "---- last 200 lines of build.log ----" && \
+    tail -n 200 build.log && \
+    exit 1 )
 
 # ============================================================
 # Stage 2: runtime image
