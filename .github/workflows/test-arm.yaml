@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04-arm]
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +36,8 @@ jobs:
             # see https://github.com/rust-cross/manylinux-cross
             # image: messense/manylinux2014-cross:armv7l-arm64
             # image: messense/manylinux_2_28-cross:armv7l-arm64
-            image: messense/manylinux_2_31-cross:armv7l-arm64
+            # image: messense/manylinux_2_31-cross:armv7l-arm64
+            image: quay.io/pypa/manylinux_2_35_armv7l
             shell: bash
             run: |
               find / -maxdepth 4 -type d | grep armv7
