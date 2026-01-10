@@ -71,17 +71,17 @@ jobs:
               uname -a
               which gcc
 
-              # export CC=armv7-linux-gnueabihf-gcc
-              # export CXX=armv7-linux-gnueabihf-g++
-              # export AR=armv7-linux-gnueabihf-ar
-              # export RANLIB=armv7-linux-gnueabihf-ranlib
+              # export CC=arm-linux-gnueabihf-gcc
+              # export CXX=arm-linux-gnueabihf-g++
+              # export AR=arm-linux-gnueabihf-ar
+              # export RANLIB=arm-linux-gnueabihf-ranlib
 
-              armv7-linux-gnueabihf-gcc --version
-              which armv7-linux-gnueabihf-gcc
-              file $(which armv7-linux-gnueabihf-gcc)
+              arm-linux-gnueabihf-gcc --version
+              which arm-linux-gnueabihf-gcc
+              file $(which arm-linux-gnueabihf-gcc)
 
               echo 'int main(){return 0;}' > t.c
-              armv7-linux-gnueabihf-gcc t.c -o t
+              arm-linux-gnueabihf-gcc t.c -o t
 
               file t
 
