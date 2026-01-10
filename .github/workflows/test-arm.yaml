@@ -63,10 +63,6 @@ jobs:
 
               clang-16 --version
 
-              ls /usr/armv7-unknown-linux-gnueabihf/sysroot
-
-              strings /usr/armv7-unknown-linux-gnueabihf/sysroot/lib/libc.so.6 | grep ^GLIBC
-
               cat > test.cc <<'EOF'
               #include <iostream>
               #include <vector>
@@ -88,6 +84,9 @@ jobs:
                 -mfpu=neon \
                 -mfloat-abi=hard \
                 -std=gnu++17 \
+                -stdlib=libc++ \
+                -nostdinc++ \
+                -isystem /usr/include/c++/v1 \
                 test.cc \
                 -o test_armv7 \
                 -fuse-ld=lld \
