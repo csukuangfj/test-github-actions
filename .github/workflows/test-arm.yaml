@@ -31,27 +31,6 @@ jobs:
           platforms: arm
 
       - name: Build
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/io \
-            messense/manylinux2014-cross:armv7l \
-            bash -c "
-              set -e
-              uname -m
-              which gcc
-              file $(which gcc)
-
-              which arm-linux-gnueabihf-gcc
-              arm-linux-gnueabihf-gcc --version
-
-              echo 'int main(){return 0;}' > t.c
-              arm-linux-gnueabihf-gcc t.c -o t
-
-              file t
-              strings t | grep ^GLIBC
-            "
-
-      - name: Build
         if: false
         uses: addnab/docker-run-action@v3
         with:
@@ -59,8 +38,12 @@ jobs:
             image: messense/manylinux2014-cross:armv7l-arm64
             shell: bash
             run: |
+              find / -name "*gcc*"
+
               uname -a
               which gcc
+
+
 
               gcc --version
               g++ --version
