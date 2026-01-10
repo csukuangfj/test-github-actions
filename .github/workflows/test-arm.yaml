@@ -37,6 +37,12 @@ jobs:
             image: messense/manylinux2014-cross:armv7l-arm64
             shell: bash
             run: |
+              find / -maxdepth 4 -type d | grep armv7
+              echo "---"
+              find / -maxdepth 4 -type d | grep gnueabihf | head -50
+              echo "---"
+
+
               apt-get update
               apt-get install -y curl ca-certificates gnupg
 
@@ -82,6 +88,9 @@ jobs:
               ls -lh test_armv7
               file test_armv7
               strings test_armv7 | grep ^GLIBC
+              readelf -d test_armv7
+              echo "---"
+              readelf -l test_armv7
 
               exit 0
 
