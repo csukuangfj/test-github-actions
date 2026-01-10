@@ -43,3 +43,18 @@ jobs:
               gcc --version
               g++ --version
               ldd --version
+
+              echo "---"
+              file $(which gcc)
+
+              arm-linux-gnueabihf-gcc --version
+              arm-linux-gnueabihf-g++ --version
+
+              echo 'int main(){return 0;}' > t.c
+              arm-linux-gnueabihf-gcc t.c -o t
+              file t
+              strings t | grep ^GLIBC
+
+
+
+
