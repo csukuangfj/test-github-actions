@@ -3,7 +3,7 @@ name: build-armv7-gcc11-glibc217
 on:
   push:
     branches:
-      - test-arm
+      - test-arm-2
 
   workflow_dispatch:
 
