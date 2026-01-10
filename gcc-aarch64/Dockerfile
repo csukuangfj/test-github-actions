@@ -1,6 +1,8 @@
 FROM quay.io/pypa/manylinux2014_aarch64
 
-ARG GCC_VERSION=11.4.0
+# ARG GCC_VERSION=11.4.0
+ARG GCC_VERSION
+
 ENV PREFIX=/opt/gcc-${GCC_VERSION}
 
 # Install build deps
@@ -26,13 +28,13 @@ ENV CCACHE_MAXSIZE=10G
 ENV PATH=/usr/lib64/ccache:${PATH}
 
 # Build GCC
-COPY build-gcc11.sh /build-gcc11.sh
-RUN bash /build-gcc11.sh
+COPY build-gcc.sh /build-gcc.sh
+RUN bash /build-gcc.sh ${GCC_VERSION}
 
 # Expose GCC
 ENV PATH=${PREFIX}/bin:${PATH}
 ENV LD_LIBRARY_PATH=${PREFIX}/lib64:${PREFIX}/lib:${LD_LIBRARY_PATH}
 
 # Sanity checks
-RUN gcc --version && ldd --version
+RUN gcc --version && g++ --version && ldd --version
 

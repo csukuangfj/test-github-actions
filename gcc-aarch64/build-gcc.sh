@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-GCC_VERSION=11.4.0
+GCC_VERSION="$1"           # e.g. 11.4.0 / 12.3.0 / 13.2.0
+
 PREFIX=/opt/gcc-${GCC_VERSION}
 
 mkdir -p /tmp/gcc-build
@@ -25,10 +26,12 @@ export CXX="ccache g++"
   --prefix=${PREFIX} \
   --enable-languages=c,c++ \
   --disable-multilib \
-  --with-system-zlib
+  --with-system-zlib \
+  --disable-bootstrap
 
-make -j$(nproc)
-make install
+make -s -j$(nproc)
+make install-strip
+
 
 # Reduce image size
 rm -rf /tmp/gcc-${GCC_VERSION} /tmp/gcc-build

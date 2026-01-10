@@ -2,13 +2,20 @@ name: build-gcc11-manylinux2014-aarch64
 
 on:
   push:
-    branches: [gcc-11-aarch64-2]
+    branches: [gcc-11-aarch64]
   workflow_dispatch:
 
 
 jobs:
   build:
     runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc:
+          - "11.4.0"
+          - "12.3.0"
+          - "13.2.0"
 
     permissions:
       contents: read
@@ -29,15 +36,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push GCC 11 manylinux2014 image
+      - name: Build and push GCC ${{ matrix.gcc }}
         uses: docker/build-push-action@v5
         with:
-          context: ./gcc-11-aarch64
-          file: ./gcc-11-aarch64/Dockerfile
+          context: ./gcc-aarch64
+          file: ./gcc-aarch64/Dockerfile
           platforms: linux/arm64
           push: true
+          build-args: |
+            GCC_VERSION=${{ matrix.gcc }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/manylinux2014-aarch64-gcc11:11.4.0
-            ghcr.io/${{ github.repository_owner }}/manylinux2014-aarch64-gcc11:latest
+            ghcr.io/${{ github.repository_owner }}/manylinux2014-aarch64-gcc:${{ matrix.gcc }}
+            ghcr.io/${{ github.repository_owner }}/manylinux2014-aarch64-gcc:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
