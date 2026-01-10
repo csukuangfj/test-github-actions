@@ -31,7 +31,6 @@ jobs:
           platforms: arm
 
       - name: Build
-        if: false
         uses: addnab/docker-run-action@v3
         with:
             # see https://github.com/rust-cross/manylinux-cross
@@ -42,8 +41,6 @@ jobs:
 
               uname -a
               which gcc
-
-
 
               gcc --version
               g++ --version
