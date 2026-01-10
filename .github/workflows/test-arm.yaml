@@ -35,7 +35,8 @@ jobs:
         with:
             # see https://github.com/rust-cross/manylinux-cross
             # image: messense/manylinux2014-cross:armv7l-arm64
-            image: messense/manylinux_2_28-cross:armv7l-arm64
+            # image: messense/manylinux_2_28-cross:armv7l-arm64
+            image: messense/manylinux_2_31-cross:armv7l-arm64
             shell: bash
             run: |
               find / -maxdepth 4 -type d | grep armv7

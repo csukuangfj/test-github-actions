@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     patch \
     git \
     wget \
+    bzip2 \
+    gzip \
     curl \
     unzip \
     python3 \
@@ -33,6 +35,8 @@ RUN apt-get update && apt-get install -y \
     rsync \
     sudo \
     && rm -rf /var/lib/apt/lists/*
+RUN update-ca-certificates
+
 
 # ------------------------------------------------------------
 # Build & install crosstool-NG
