@@ -1,0 +1,26 @@
+name: job-container-gcc11
+
+on:
+  push:
+    branches:
+      - gcc-11-aarch64-2
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sherpa-onnx
+        uses: addnab/docker-run-action@v3
+        with:
+            image: ghcr.io/csukuangfj/manylinux2014-aarch64-gcc11:latest
+            shell: bash
+            run: |
+              gcc --version
+              ldd --version
+              which gcc
+
+
