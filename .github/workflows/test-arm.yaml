@@ -37,7 +37,7 @@ jobs:
             image: messense/manylinux2014-cross:armv7l-arm64
             shell: bash
             run: |
-              find / -name "*gcc*"
+              # find / -name "*gcc*"
 
               uname -a
               which gcc
@@ -50,6 +50,10 @@ jobs:
               export CXX=armv7-unknown-linux-gnueabihf-g++
               export AR=armv7-unknown-linux-gnueabihf-ar
               export RANLIB=armv7-unknown-linux-gnueabihf-ranlib
+
+              armv7-unknown-linux-gnueabihf-gcc --version
+              which armv7-unknown-linux-gnueabihf-gcc
+              file $(which armv7-unknown-linux-gnueabihf-gcc)
 
               echo 'int main(){return 0;}' > t.c
               armv7-unknown-linux-gnueabihf-gcc t.c -o t
