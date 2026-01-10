@@ -3,7 +3,7 @@ name: ubuntu
 on:
   push:
     branches:
-      - test-arm
+      - test-arm-2
 
   workflow_dispatch:
 
