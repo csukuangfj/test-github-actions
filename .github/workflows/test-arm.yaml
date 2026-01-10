@@ -42,6 +42,14 @@ jobs:
               find / -maxdepth 4 -type d | grep gnueabihf | head -50
               echo "---"
 
+              SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
+
+              ls -lh $SYSROOT
+
+              strings $SYSROOT/lib/libc.so.6 | grep ^GLIBC
+
+
+
 
               apt-get update
               apt-get install -y curl ca-certificates gnupg
@@ -70,7 +78,7 @@ jobs:
               }
               EOF
 
-              SYSROOT=/usr/armv7-unknown-linux-gnueabihf/sysroot
+              SYSROOT=/usr/armv7-unknown-linux-gnueabihf/armv7-unknown-linux-gnueabihf/sysroot
 
 
               clang-16 \
