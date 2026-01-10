@@ -1,4 +1,4 @@
-name: ubuntu
+name: arm
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  ubuntu:
+  arm:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
