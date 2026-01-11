@@ -1,0 +1,116 @@
+name: test-axera-npu-toolchain
+
+on:
+  push:
+    branches:
+      - axera-npu-toolchain
+
+jobs:
+  axera-npu-toolchain:
+    if: false
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show
+        run: |
+          df -h
+
+      - name: Cleanup Docker
+        run: |
+          docker system prune -af
+          docker volume prune -f
+
+      - name: Show
+        run: |
+          df -h
+
+      - name: Download Pulsar2 image
+        run: |
+          curl -SL -O https://huggingface.co/AXERA-TECH/Pulsar2/resolve/main/4.2/ax_pulsar2_4.2.tar.gz
+          ls -lh *.tar.gz
+
+      - name: Load Docker image
+        run: |
+          sudo systemctl stop docker
+          sudo mv /var/lib/docker /mnt/docker
+          sudo ln -s /mnt/docker /var/lib/docker
+          sudo systemctl start docker
+          docker load -i ax_pulsar2_4.2.tar.gz
+
+      - name: List images
+        run: docker images
+
+
+      - name: Tag image for GHCR
+        run: |
+          docker tag pulsar2:4.2 ghcr.io/${{ github.repository_owner }}/axera-pulsar2:4.2
+
+      - name: Push image to GHCR
+        run: docker push ghcr.io/${{ github.repository_owner }}/axera-pulsar2:4.2
+
+      - name: Verify push
+        run: docker pull ghcr.io/${{ github.repository_owner }}/axera-pulsar2:4.2
+
+  test:
+    if: false
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: test
+        uses: addnab/docker-run-action@v3
+        with:
+            image: ghcr.io/csukuangfj/axera-pulsar2:4.2
+            shell: bash
+            run: |
+              uname -a
+              which pulsar2
+              pulsar2 version
+
+  test2:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/csukuangfj/axera-pulsar2:4.2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show filesystem
+        run: df -h
+
+      - name: Setup tmate session
+        if: true
+        uses: mxschmitt/action-tmate@v3
+
+      - name: Run
+        shell: bash
+        run: |
+          which pulsar2
+          pulsar2 --version
