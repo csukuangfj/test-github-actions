@@ -70,7 +70,7 @@ jobs:
         run: docker pull ghcr.io/${{ github.repository_owner }}/axera-pulsar2:4.2
 
   test:
-    false
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
