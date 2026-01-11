@@ -3,10 +3,11 @@ name: test-axera-npu-toolchain
 on:
   push:
     branches:
-      - axera-npu-toolchain-2
+      - axera-npu-toolchain
 
 jobs:
   axera-npu-toolchain:
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -68,5 +69,51 @@ jobs:
       - name: Verify push
         run: docker pull ghcr.io/${{ github.repository_owner }}/axera-pulsar2:4.2
 
+  test:
+    false
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8"]
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      - name: test
+        uses: addnab/docker-run-action@v3
+        with:
+            image: ghcr.io/csukuangfj/axera-pulsar2:4.2
+            shell: bash
+            run: |
+              uname -a
+              which pulsar2
+              pulsar2 version
+
+  test2:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/csukuangfj/axera-pulsar2:4.2
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show filesystem
+        run: df -h
+
+      - name: Setup tmate session
+        if: true
+        uses: mxschmitt/action-tmate@v3
+
+      - name: Run
+        shell: bash
+        run: |
+          which pulsar2
+          pulsar2 --version
