@@ -97,9 +97,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/csukuangfj/axera-pulsar2:4.2
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_TOKEN }}
 
     steps:
       - name: Checkout
