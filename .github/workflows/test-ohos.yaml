@@ -1,0 +1,27 @@
+name: test-ohos
+
+on:
+  push:
+    branches:
+      - ohos
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sherpa-onnx
+        uses: addnab/docker-run-action@v3
+        with:
+            image: ghcr.io/csukuangfj/ohos-2026-06-30:latest
+            shell: bash
+            run: |
+              id
+              cat /etc/*version
+              ls -lh
+              find / -name hvigorw
+
+
