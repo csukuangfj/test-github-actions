@@ -3,7 +3,7 @@ name: build-ohos
 on:
   push:
     branches:
-      - ohos
+      - ohos-2
   workflow_dispatch:
 
 

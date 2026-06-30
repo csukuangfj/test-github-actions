@@ -3,7 +3,7 @@ name: test-ohos
 on:
   push:
     branches:
-      - ohos-2
+      - ohos
   workflow_dispatch:
 
 jobs:
@@ -16,9 +16,10 @@ jobs:
       - name: Build sherpa-onnx
         uses: addnab/docker-run-action@v3
         with:
-            image: ghcr.io/csukuangfj/ohos-2026-06-30:latest
+            image: ghcr.io/csukuangfj/ohos-standard:latest
             shell: bash
             run: |
+              pwd
               id
               cat /etc/*version
               ls -lh
