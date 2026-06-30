@@ -3,7 +3,7 @@ name: test-ohos
 on:
   push:
     branches:
-      - ohos
+      - ohos-2
   workflow_dispatch:
 
 jobs:

@@ -3,7 +3,7 @@ name: build-ohos
 on:
   push:
     branches:
-      - ohos-2
+      - ohos
   workflow_dispatch:
 
 
@@ -40,6 +40,6 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ohos-2026-06-30:latest
+            ghcr.io/${{ github.repository_owner }}/ohos-standard:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
