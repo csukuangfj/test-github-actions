@@ -1,0 +1,66 @@
+name: Upload Split OHOS Command Line Tools
+
+on:
+  push:
+    branches:
+      - ohos
+  workflow_dispatch:
+
+jobs:
+  download-split-upload:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 必须赋予写入 Release 的权限
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Large Zip File
+        shell: bash
+        run: |
+          URL="https://huggingface.co/csukuangfj/harmonyos-commandline-tools/resolve/main/commandline-tools-linux-x64-5.0.3.906.zip?download=true"
+          echo "Downloading commandline tools..."
+          # -L 跟踪重定向，-o 指定输出文件名
+          curl -L "$URL" -o commandline-tools-linux-x64-5.0.3.906.zip
+
+          echo "=== 查看文件大小 ==="
+          ls -lh commandline-tools-linux-x64-5.0.3.906.zip
+
+      - name: Split File into 3 Parts
+        shell: bash
+        run: |
+          # 获取总字节数
+          TOTAL_SIZE=$(stat -c%s "commandline-tools-linux-x64-5.0.3.906.zip")
+          # 向上取整计算每一份的大小：总大小 / 3
+          PART_SIZE=$(( (TOTAL_SIZE + 2) / 3 ))
+
+          echo "Total size: $TOTAL_SIZE bytes"
+          echo "Each part size: $PART_SIZE bytes"
+
+          # 使用 split 命令切分，使用数字后缀 (-d)，后缀长度为 2 (-a 2)
+          # 生成的文件名会是: commandline-tools-part00, part01, part02
+          split -b $PART_SIZE -d -a 2 commandline-tools-linux-x64-5.0.3.906.zip commandline-tools-part
+
+          echo "=== 检查切分后的分卷 ==="
+          ls -lh commandline-tools-part*
+
+      - name: Upload to GitHub Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 借用 GitHub 自动生成的 Token
+        run: |
+          TAG_NAME="ohos-tools"
+
+          echo "Checking if release exists..."
+          # 创建或更新 Release。如果 tag 不存在会自动创建，--clobber 允许覆盖同名文件
+          gh release create "$TAG_NAME" \
+            --title "OpenHarmony CommandLine Tools Split" \
+            --notes "Automated split parts of commandline-tools-linux-x64-5.0.3.906.zip" \
+            --if-not-exists
+
+          echo "Uploading split files..."
+          # 将刚才切出来的三个 part 压缩包全部塞进 Release
+          gh release upload "$TAG_NAME" commandline-tools-part* --clobber
+
+          echo "Upload complete successfully!"
