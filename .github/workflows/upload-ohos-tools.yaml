@@ -48,19 +48,19 @@ jobs:
       - name: Upload to GitHub Release
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 借用 GitHub 自动生成的 Token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG_NAME="ohos-tools"
 
-          echo "Checking if release exists..."
-          # 创建或更新 Release。如果 tag 不存在会自动创建，--clobber 允许覆盖同名文件
+          echo "Checking or creating release..."
+          # 移除 --if-not-exists，使用 || true 兜底。
+          # 如果 tag 已存在，创建会失败，但 || true 会让脚本继续往下走，不会熔断崩溃。
           gh release create "$TAG_NAME" \
             --title "OpenHarmony CommandLine Tools Split" \
-            --notes "Automated split parts of commandline-tools-linux-x64-5.0.3.906.zip" \
-            --if-not-exists
+            --notes "Automated split parts of commandline-tools-linux-x64-5.0.3.906.zip" || echo "Release tag already exists, proceeding to upload..."
 
           echo "Uploading split files..."
-          # 将刚才切出来的三个 part 压缩包全部塞进 Release
+          # --clobber 是核心，它会无视已存在的文件，强行覆盖上传最新的切片文件
           gh release upload "$TAG_NAME" commandline-tools-part* --clobber
 
           echo "Upload complete successfully!"
