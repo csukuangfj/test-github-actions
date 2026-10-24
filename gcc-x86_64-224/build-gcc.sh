@@ -9,8 +9,21 @@ PREFIX=/opt/gcc-${GCC_VERSION}
 # Skip the manuals: texinfo is not in the base image and cannot be apt-
 # installed (Debian 9 is EOL). MAKEINFO=missing is enough for gcc but not
 # for binutils -- its doc rules still shell out and die with Error 127 --
-# so use `true`, which makes every makeinfo invocation a no-op success.
+# so pass MAKEINFO=true on the make command line instead, which overrides
+# whatever each sub-configure wrote into its Makefile.
 export MAKEINFO=true
+
+# Belt and braces: put a makeinfo/install-info that succeed without doing
+# anything on PATH. binutils' sub-configures (bfd, gas, ld, ...) re-detect
+# makeinfo and write `missing makeinfo` into their own Makefiles regardless of
+# the MAKEINFO environment variable, so a stub on PATH is what actually stops
+# the doc rules from dying; MAKEINFO=true on the make lines covers the rest.
+mkdir -p /usr/local/bin
+for tool in makeinfo install-info; do
+  printf '#!/bin/sh\nexit 0\n' > /usr/local/bin/${tool}
+  chmod +x /usr/local/bin/${tool}
+done
+export PATH=/usr/local/bin:${PATH}
 
 mkdir -p /tmp/gcc-build
 cd /tmp
@@ -46,8 +59,8 @@ mkdir build && cd build
   --disable-nls \
   --disable-werror \
   --disable-gprofng
-make -s -j"$(nproc)"
-make install-strip
+make -s -j"$(nproc)" MAKEINFO=true INSTALL_INFO=true
+make install-strip MAKEINFO=true INSTALL_INFO=true
 cd /tmp
 
 # --- gcc ------------------------------------------------------------------
@@ -77,8 +90,8 @@ cd build
   --with-as="${PREFIX}/bin/as" \
   --with-ld="${PREFIX}/bin/ld"
 
-make -s -j"$(nproc)"
-make install-strip
+make -s -j"$(nproc)" MAKEINFO=true INSTALL_INFO=true
+make install-strip MAKEINFO=true INSTALL_INFO=true
 
 # Reduce image size. cd out first: we are still inside /tmp/gcc-*.
 cd /
