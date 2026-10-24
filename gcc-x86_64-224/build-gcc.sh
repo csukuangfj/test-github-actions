@@ -6,13 +6,19 @@ BINUTILS_VERSION="${BINUTILS_VERSION:-2.40}"
 
 PREFIX=/opt/gcc-${GCC_VERSION}
 
+# Skip the manuals: texinfo is not in the base image and cannot be apt-
+# installed (Debian 9 is EOL). MAKEINFO=missing is enough for gcc but not
+# for binutils -- its doc rules still shell out and die with Error 127 --
+# so use `true`, which makes every makeinfo invocation a no-op success.
+export MAKEINFO=true
+
 mkdir -p /tmp/gcc-build
 cd /tmp
 
 # manylinux_2_24 is Debian 9 and EOL, so its apt mirrors are gone: install
 # nothing and use what the image already ships. curl is present; wget is not.
 # Fall back to the .tar.gz if xz is missing. release tarballs carry the
-# generated parser sources and MAKEINFO=missing skips the manual, so
+# generated parser sources and MAKEINFO=true skips the manual, so
 # bison/flex/texinfo are not required either.
 fetch() {
   local name="$1"
@@ -34,11 +40,12 @@ fetch binutils-${BINUTILS_VERSION}
 tar xf binutils-${BINUTILS_VERSION}.tar.*
 cd binutils-${BINUTILS_VERSION}
 mkdir build && cd build
-MAKEINFO=missing ../configure \
+../configure \
   --prefix="${PREFIX}" \
   --disable-multilib \
   --disable-nls \
-  --disable-werror
+  --disable-werror \
+  --disable-gprofng
 make -s -j"$(nproc)"
 make install-strip
 cd /tmp
@@ -62,7 +69,7 @@ cd build
 #
 # --with-as/--with-ld bake the tool paths into the driver, so the compiler
 # cannot silently fall back to the system binutils at build time either.
-MAKEINFO=missing ../configure \
+../configure \
   --prefix="${PREFIX}" \
   --enable-languages=c,c++ \
   --disable-multilib \
@@ -73,7 +80,8 @@ MAKEINFO=missing ../configure \
 make -s -j"$(nproc)"
 make install-strip
 
-# Reduce image size
+# Reduce image size. cd out first: we are still inside /tmp/gcc-*.
+cd /
 rm -rf /tmp/gcc-* /tmp/binutils-* /tmp/gcc-build
 
 "${PREFIX}/bin/gcc" --version
