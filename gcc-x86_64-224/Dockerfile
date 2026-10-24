@@ -19,7 +19,13 @@ ENV PATH=${PREFIX}/bin:${PATH}
 ENV LD_LIBRARY_PATH=${PREFIX}/lib64:${PREFIX}/lib:${LD_LIBRARY_PATH}
 
 # Sanity checks
-RUN gcc --version && g++ --version && ldd --version
+# as/ld must come from the binutils we build: gcc falls back to the system
+# ones otherwise, and Debian 9's binutils 2.28 cannot assemble AVX-VNNI
+# (x86_64) or aarch64+bf16.
+RUN gcc --version && g++ --version && as --version && ld --version && ldd --version \
+ && as_path="$(command -v as)" \
+ && echo "as=${as_path}" \
+ && case "${as_path}" in /opt/gcc-*) ;; *) echo "ERROR: ${as_path} is the system binutils"; exit 1 ;; esac
 
 # The point of this image is a gcc on a glibc 2.24 base whose default C++ ABI is
 # the C++11 one. Red Hat SCL devtoolset is built
