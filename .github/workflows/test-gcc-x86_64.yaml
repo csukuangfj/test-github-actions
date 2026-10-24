@@ -1,0 +1,31 @@
+name: job-container-gcc11-x86_64
+
+on:
+  push:
+    branches:
+      - gcc11-linux
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show the toolchain
+        uses: addnab/docker-run-action@v3
+        with:
+            image: ghcr.io/csukuangfj/manylinux2014-x86_64-gcc11:latest
+            shell: bash
+            run: |
+              set -e
+              gcc --version
+              g++ --version
+              ldd --version
+              which gcc
+
+              # The reason this image exists: a stock gcc on a glibc 2.17 base
+              # defaults to the C++11 ABI and honours -D_GLIBCXX_USE_CXX11_ABI,
+              # unlike Red Hat SCL devtoolset.
+              bash /check-cxx11-abi.sh

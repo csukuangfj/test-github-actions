@@ -1,0 +1,60 @@
+name: build-gcc11-manylinux2014-x86_64
+
+on:
+  push:
+    branches:
+      - gcc11-linux
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - gcc: "11.4.0"
+            major: 11
+          - gcc: "12.3.0"
+            major: 12
+          - gcc: "13.2.0"
+            major: 13
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Buildx is required for cache + multi-platform correctness
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Each gcc major gets its own image name so the "latest" tags never race
+      # each other. manylinux2014-x86_64-gcc11:latest is what onnxruntime-build
+      # consumes in place of Red Hat SCL devtoolset.
+      - name: Build and push GCC ${{ matrix.gcc }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./gcc-x86_64
+          file: ./gcc-x86_64/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            GCC_VERSION=${{ matrix.gcc }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/manylinux2014-x86_64-gcc${{ matrix.major }}:${{ matrix.gcc }}
+            ghcr.io/${{ github.repository_owner }}/manylinux2014-x86_64-gcc${{ matrix.major }}:latest
+            ghcr.io/${{ github.repository_owner }}/manylinux2014-x86_64-gcc:${{ matrix.gcc }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
