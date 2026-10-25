@@ -33,14 +33,18 @@ cd /tmp
 # Fall back to the .tar.gz if xz is missing. release tarballs carry the
 # generated parser sources and MAKEINFO=true skips the manual, so
 # bison/flex/texinfo are not required either.
+# Download <url>.tar.xz or <url>.tar.gz. The caller passes the URL without the
+# extension because the GNU mirror layout is not uniform: binutils is flat
+# (/gnu/binutils/binutils-2.40.tar.gz) while gcc nests each release in its own
+# directory (/gnu/gcc/gcc-11.4.0/gcc-11.4.0.tar.gz).
 fetch() {
-  local name="$1"
+  local url="$1"
   for ext in xz gz; do
-    if [ "${ext}" = "gz" ] && ! command -v gzip >/dev/null 2>&1; then continue; fi
     if [ "${ext}" = "xz" ] && ! command -v xz >/dev/null 2>&1; then continue; fi
-    curl -fsSL -O "https://ftp.gnu.org/gnu/${name%%-*}/${name}.tar.${ext}" && return 0
+    if [ "${ext}" = "gz" ] && ! command -v gzip >/dev/null 2>&1; then continue; fi
+    curl -fsSL -O "${url}.tar.${ext}" && return 0
   done
-  echo "ERROR: could not download ${name}" >&2
+  echo "ERROR: could not download ${url}" >&2
   return 1
 }
 
@@ -49,7 +53,7 @@ fetch() {
 # Debian 9's binutils is 2.28 and cannot assemble what gcc 11+ emits for
 # AVX-VNNI (x86_64) or aarch64+bf16 -- onnxruntime rejects both. So build a
 # matching binutils into the same prefix and point gcc at it explicitly.
-fetch binutils-${BINUTILS_VERSION}
+fetch "https://ftp.gnu.org/gnu/binutils/binutils-${BINUTILS_VERSION}"
 tar xf binutils-${BINUTILS_VERSION}.tar.*
 cd binutils-${BINUTILS_VERSION}
 mkdir build && cd build
@@ -64,7 +68,7 @@ make install-strip MAKEINFO=true INSTALL_INFO=true
 cd /tmp
 
 # --- gcc ------------------------------------------------------------------
-fetch gcc-${GCC_VERSION}
+fetch "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}"
 tar xf gcc-${GCC_VERSION}.tar.*
 cd gcc-${GCC_VERSION}
 
