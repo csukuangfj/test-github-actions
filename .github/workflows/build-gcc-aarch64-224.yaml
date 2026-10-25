@@ -3,7 +3,7 @@ name: build-gcc11-manylinux_2_24-aarch64
 on:
   push:
     branches:
-      - gcc11-linux
+      - gcc11-linux-2
   workflow_dispatch:
 
 

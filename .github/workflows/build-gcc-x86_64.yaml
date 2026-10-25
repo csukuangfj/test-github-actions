@@ -3,7 +3,7 @@ name: build-gcc11-manylinux2014-x86_64
 on:
   push:
     branches:
-      - gcc11-linux-2
+      - gcc11-linux
   workflow_dispatch:
 
 

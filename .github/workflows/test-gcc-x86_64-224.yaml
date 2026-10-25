@@ -3,7 +3,7 @@ name: job-container-gcc11-x86_64-224
 on:
   push:
     branches:
-      - gcc11-linux
+      - gcc11-linux-2
   workflow_dispatch:
 
 jobs:
