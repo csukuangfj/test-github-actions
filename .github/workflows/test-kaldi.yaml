@@ -58,6 +58,26 @@ jobs:
             ls -la /opt/kaldi
 
             echo
+            echo "################ GIT (kaldi source commit) ################"
+            # /opt/kaldi is a git checkout; show the exact commit the image was built from.
+            git config --global --add safe.directory /opt/kaldi 2>/dev/null || true
+            echo "==== latest commit ===="
+            if git -C /opt/kaldi rev-parse --git-dir >/dev/null 2>&1; then
+              git -C /opt/kaldi log -1
+              echo
+              echo "==== oneline ===="
+              git -C /opt/kaldi log -1 --oneline
+              echo
+              echo "==== branch / describe / remote / HEAD ===="
+              echo "branch:   $(git -C /opt/kaldi rev-parse --abbrev-ref HEAD 2>/dev/null)"
+              echo "describe: $(git -C /opt/kaldi describe --always --tags --dirty 2>/dev/null)"
+              echo "HEAD:     $(git -C /opt/kaldi rev-parse HEAD 2>/dev/null)"
+              git -C /opt/kaldi remote -v
+            else
+              echo "(/opt/kaldi is not a git checkout)"
+            fi
+
+            echo
             echo "################ BINARIES ################"
             echo "==== Kaldi binaries (/opt/kaldi/src/*bin) ===="
             for d in /opt/kaldi/src/*bin; do
@@ -101,6 +121,22 @@ jobs:
             find /opt/kaldi/tools/openfst/include -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | wc -l
             echo "==== openfst headers (/opt/kaldi/tools/openfst/include) list ===="
             find /opt/kaldi/tools/openfst/include -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | sort
+
+            echo
+            echo "################ SMOKE (invoke tools with --help) ################"
+            # Actually run a representative spread of tools with --help to prove the
+            # binaries execute (dynamic linking, PATH, openfst, ...), not just exist.
+            # `| head` captures usage regardless of the tool's --help exit code.
+            for c in compute-mfcc-feats copy-feats gmm-info lattice-best-path \
+                     nnet3-info ivector-compute-plda align-text fstcompile; do
+              echo
+              echo "---- $c --help ----"
+              if command -v "$c" >/dev/null 2>&1; then
+                "$c" --help 2>&1 | head -20
+              else
+                echo "(not found on PATH)"
+              fi
+            done
 
             echo
             echo "################ SANITY ################"
