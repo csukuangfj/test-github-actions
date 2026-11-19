@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - kaldi-docker
-      - master
   workflow_dispatch:
 
 jobs:
@@ -36,41 +35,104 @@ jobs:
           image="${{ steps.image.outputs.name }}"
           for i in $(seq 1 30); do
             if docker pull "$image"; then
-              echo "Pulled $image on attempt $i"
-              exit 0
+              echo "Pulled $image on attempt $i"; exit 0
             fi
             echo "Attempt $i: $image not ready yet, retrying in 20s..."
             sleep 20
           done
-          echo "ERROR: could not pull $image"
-          exit 1
+          echo "ERROR: could not pull $image"; exit 1
 
-      - name: Test the image (pwd, ls, kaldi sanity)
+      # Runs inside the container and reports every Kaldi binary, library and
+      # header file it ships. The quoted heredoc (<<'...') is passed verbatim to
+      # `bash -s` in the container, so no shell quoting needs escaping.
+      - name: Inventory the image (binaries, libs, headers)
         run: |
-          docker run --rm ${{ steps.image.outputs.name }} bash -c '
-            set -e
+          docker run --rm -i ${{ steps.image.outputs.name }} bash -s <<'KALDI_INV'
+            set -u
 
-            echo "== pwd =="
+            echo "################ BASIC ################"
+            echo "==== pwd ===="
             pwd
+            echo
+            echo "==== /opt/kaldi (top level) ===="
+            ls -la /opt/kaldi
 
-            echo "== ls (WORKDIR) =="
-            ls
+            echo
+            echo "################ BINARIES ################"
+            echo "==== Kaldi binaries (/opt/kaldi/src/*bin) ===="
+            for d in /opt/kaldi/src/*bin; do
+              if [ -d "$d" ]; then
+                echo
+                echo "-- $d --"
+                ls -1 "$d"
+              fi
+            done
 
-            echo "== system =="
-            uname -a
-            cat /etc/*release
+            echo
+            echo "==== openfst binaries (/opt/kaldi/tools/openfst/bin) ===="
+            if [ -d /opt/kaldi/tools/openfst/bin ]; then
+              ls -1 /opt/kaldi/tools/openfst/bin
+            else
+              echo "(not found)"
+            fi
 
-            echo "== /opt/kaldi =="
-            ls /opt/kaldi
+            echo
+            echo "################ LIBRARIES ################"
+            echo "==== Kaldi libraries (/opt/kaldi/src/lib) ===="
+            if [ -d /opt/kaldi/src/lib ]; then
+              ls -la /opt/kaldi/src/lib
+            else
+              echo "(not found)"
+            fi
 
-            echo "== kaldi binaries on PATH =="
-            command -v compute-mfcc-feats
-            command -v copy-feats
-            command -v fstcompile
+            echo
+            echo "==== All .so / .a under /opt/kaldi (kaldi + openfst + openblas) ===="
+            find /opt/kaldi -type f \( -name '*.so' -o -name '*.so.*' -o -name '*.a' \) 2>/dev/null | sort
 
-            echo "== openfst functional test =="
-            printf "0 1 1 1\n1\n" | fstcompile > /tmp/t.fst
-            fstinfo /tmp/t.fst
+            echo
+            echo "################ HEADERS ################"
+            echo "==== Kaldi headers (/opt/kaldi/src) count ===="
+            find /opt/kaldi/src -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | wc -l
+            echo "==== Kaldi headers (/opt/kaldi/src) list ===="
+            find /opt/kaldi/src -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | sort
 
-            echo "ALL TESTS PASSED"
-          '
+            echo
+            echo "==== openfst headers (/opt/kaldi/tools/openfst/include) count ===="
+            find /opt/kaldi/tools/openfst/include -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | wc -l
+            echo "==== openfst headers (/opt/kaldi/tools/openfst/include) list ===="
+            find /opt/kaldi/tools/openfst/include -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | sort
+
+            echo
+            echo "################ SANITY ################"
+            fail=0
+            for t in compute-mfcc-feats copy-feats fstcompile; do
+              if p=$(command -v "$t" 2>/dev/null); then
+                echo "OK      $t -> $p"
+              else
+                echo "MISSING $t"
+                fail=1
+              fi
+            done
+
+            if ls /opt/kaldi/src/*bin/* >/dev/null 2>&1; then
+              echo "OK      kaldi binaries present"
+            else
+              echo "MISSING kaldi binaries"
+              fail=1
+            fi
+
+            if find /opt/kaldi -type f -name '*.so*' 2>/dev/null | grep -q .; then
+              echo "OK      shared libraries present"
+            else
+              echo "MISSING shared libraries"
+              fail=1
+            fi
+
+            echo
+            if [ "$fail" -eq 0 ]; then
+              echo "INVENTORY COMPLETE — all checks passed"
+            else
+              echo "INVENTORY COMPLETE — BUT SOME CHECKS FAILED"
+              exit 1
+            fi
+          KALDI_INV

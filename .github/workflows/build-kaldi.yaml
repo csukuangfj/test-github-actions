@@ -3,8 +3,7 @@ name: build-kaldi
 on:
   push:
     branches:
-      - kaldi-docker
-      - master
+      - kaldi-docker-2
   workflow_dispatch:
 
 jobs:
