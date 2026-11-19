@@ -1,0 +1,76 @@
+name: test-kaldi
+
+on:
+  push:
+    branches:
+      - kaldi-docker
+      - master
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image name
+        id: image
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "name=ghcr.io/${owner}/kaldi:latest" >> "$GITHUB_OUTPUT"
+
+      # build-kaldi.yaml pushes this image. On a fresh push the two workflows run
+      # in parallel, so retry the pull briefly until the image is available.
+      - name: Pull the image (retry until build-kaldi pushes it)
+        run: |
+          image="${{ steps.image.outputs.name }}"
+          for i in $(seq 1 30); do
+            if docker pull "$image"; then
+              echo "Pulled $image on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i: $image not ready yet, retrying in 20s..."
+            sleep 20
+          done
+          echo "ERROR: could not pull $image"
+          exit 1
+
+      - name: Test the image (pwd, ls, kaldi sanity)
+        run: |
+          docker run --rm ${{ steps.image.outputs.name }} bash -c '
+            set -e
+
+            echo "== pwd =="
+            pwd
+
+            echo "== ls (WORKDIR) =="
+            ls
+
+            echo "== system =="
+            uname -a
+            cat /etc/*release
+
+            echo "== /opt/kaldi =="
+            ls /opt/kaldi
+
+            echo "== kaldi binaries on PATH =="
+            command -v compute-mfcc-feats
+            command -v copy-feats
+            command -v fstcompile
+
+            echo "== openfst functional test =="
+            printf "0 1 1 1\n1\n" | fstcompile > /tmp/t.fst
+            fstinfo /tmp/t.fst
+
+            echo "ALL TESTS PASSED"
+          '
