@@ -35,10 +35,10 @@ jobs:
         id: image
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"
-          sha_short="${GITHUB_SHA::7}"
+          date_tag="2026-11-19"
           {
             echo "name=ghcr.io/${owner}/kaldi"
-            echo "tags=ghcr.io/${owner}/kaldi:latest,ghcr.io/${owner}/kaldi:sha-${sha_short}"
+            echo "tags=ghcr.io/${owner}/kaldi:latest,ghcr.io/${owner}/kaldi:${date_tag}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push
