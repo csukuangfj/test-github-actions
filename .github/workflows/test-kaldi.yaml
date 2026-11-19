@@ -1,0 +1,174 @@
+name: test-kaldi
+
+on:
+  push:
+    branches:
+      - kaldi-docker-2
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image name
+        id: image
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "name=ghcr.io/${owner}/kaldi:latest" >> "$GITHUB_OUTPUT"
+
+      # build-kaldi.yaml pushes this image. On a fresh push the two workflows run
+      # in parallel, so retry the pull briefly until the image is available.
+      - name: Pull the image (retry until build-kaldi pushes it)
+        run: |
+          image="${{ steps.image.outputs.name }}"
+          for i in $(seq 1 30); do
+            if docker pull "$image"; then
+              echo "Pulled $image on attempt $i"; exit 0
+            fi
+            echo "Attempt $i: $image not ready yet, retrying in 20s..."
+            sleep 20
+          done
+          echo "ERROR: could not pull $image"; exit 1
+
+      # Runs inside the container and reports every Kaldi binary, library and
+      # header file it ships. The quoted heredoc (<<'...') is passed verbatim to
+      # `bash -s` in the container, so no shell quoting needs escaping.
+      - name: Inventory the image (binaries, libs, headers)
+        run: |
+          docker run --rm -i ${{ steps.image.outputs.name }} bash -s <<'KALDI_INV'
+            set -u
+
+            echo "################ BASIC ################"
+            echo "==== pwd ===="
+            pwd
+            echo
+            echo "==== /opt/kaldi (top level) ===="
+            ls -la /opt/kaldi
+
+            echo
+            echo "################ GIT (kaldi source commit) ################"
+            # /opt/kaldi is a git checkout; show the exact commit the image was built from.
+            git config --global --add safe.directory /opt/kaldi 2>/dev/null || true
+            echo "==== latest commit ===="
+            if git -C /opt/kaldi rev-parse --git-dir >/dev/null 2>&1; then
+              git -C /opt/kaldi log -1
+              echo
+              echo "==== oneline ===="
+              git -C /opt/kaldi log -1 --oneline
+              echo
+              echo "==== branch / describe / remote / HEAD ===="
+              echo "branch:   $(git -C /opt/kaldi rev-parse --abbrev-ref HEAD 2>/dev/null)"
+              echo "describe: $(git -C /opt/kaldi describe --always --tags --dirty 2>/dev/null)"
+              echo "HEAD:     $(git -C /opt/kaldi rev-parse HEAD 2>/dev/null)"
+              git -C /opt/kaldi remote -v
+            else
+              echo "(/opt/kaldi is not a git checkout)"
+            fi
+
+            echo
+            echo "################ BINARIES ################"
+            echo "==== Kaldi binaries (/opt/kaldi/src/*bin) ===="
+            for d in /opt/kaldi/src/*bin; do
+              if [ -d "$d" ]; then
+                echo
+                echo "-- $d --"
+                ls -1 "$d"
+              fi
+            done
+
+            echo
+            echo "==== openfst binaries (/opt/kaldi/tools/openfst/bin) ===="
+            if [ -d /opt/kaldi/tools/openfst/bin ]; then
+              ls -1 /opt/kaldi/tools/openfst/bin
+            else
+              echo "(not found)"
+            fi
+
+            echo
+            echo "################ LIBRARIES ################"
+            echo "==== Kaldi libraries (/opt/kaldi/src/lib) ===="
+            if [ -d /opt/kaldi/src/lib ]; then
+              ls -la /opt/kaldi/src/lib
+            else
+              echo "(not found)"
+            fi
+
+            echo
+            echo "==== All .so / .a under /opt/kaldi (kaldi + openfst + openblas) ===="
+            find /opt/kaldi -type f \( -name '*.so' -o -name '*.so.*' -o -name '*.a' \) 2>/dev/null | sort
+
+            echo
+            echo "################ HEADERS ################"
+            echo "==== Kaldi headers (/opt/kaldi/src) count ===="
+            find /opt/kaldi/src -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | wc -l
+            echo "==== Kaldi headers (/opt/kaldi/src) list ===="
+            find /opt/kaldi/src -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | sort
+
+            echo
+            echo "==== openfst headers (/opt/kaldi/tools/openfst/include) count ===="
+            find /opt/kaldi/tools/openfst/include -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | wc -l
+            echo "==== openfst headers (/opt/kaldi/tools/openfst/include) list ===="
+            find /opt/kaldi/tools/openfst/include -type f \( -name '*.h' -o -name '*.hpp' \) 2>/dev/null | sort
+
+            echo
+            echo "################ SMOKE (invoke tools with --help) ################"
+            # Actually run a representative spread of tools with --help to prove the
+            # binaries execute (dynamic linking, PATH, openfst, ...), not just exist.
+            # `| head` captures usage regardless of the tool's --help exit code.
+            for c in compute-mfcc-feats copy-feats gmm-info lattice-best-path \
+                     nnet3-info ivector-compute-plda align-text fstcompile; do
+              echo
+              echo "---- $c --help ----"
+              if command -v "$c" >/dev/null 2>&1; then
+                "$c" --help 2>&1 | head -20
+              else
+                echo "(not found on PATH)"
+              fi
+            done
+
+            echo
+            echo "################ SANITY ################"
+            fail=0
+            for t in compute-mfcc-feats copy-feats fstcompile; do
+              if p=$(command -v "$t" 2>/dev/null); then
+                echo "OK      $t -> $p"
+              else
+                echo "MISSING $t"
+                fail=1
+              fi
+            done
+
+            if ls /opt/kaldi/src/*bin/* >/dev/null 2>&1; then
+              echo "OK      kaldi binaries present"
+            else
+              echo "MISSING kaldi binaries"
+              fail=1
+            fi
+
+            if find /opt/kaldi -type f -name '*.so*' 2>/dev/null | grep -q .; then
+              echo "OK      shared libraries present"
+            else
+              echo "MISSING shared libraries"
+              fail=1
+            fi
+
+            echo
+            if [ "$fail" -eq 0 ]; then
+              echo "INVENTORY COMPLETE — all checks passed"
+            else
+              echo "INVENTORY COMPLETE — BUT SOME CHECKS FAILED"
+              exit 1
+            fi
+          KALDI_INV
