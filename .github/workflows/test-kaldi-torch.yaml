@@ -1,0 +1,236 @@
+name: test-kaldi-torch
+
+on:
+  push:
+    branches:
+      - kaldi-torch
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image name
+        id: image
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "name=ghcr.io/${owner}/kaldi:latest" >> "$GITHUB_OUTPUT"
+
+      # build-kaldi.yaml pushes this image. On a fresh push the two workflows run
+      # in parallel, so retry the pull briefly until the image is available.
+      - name: Pull the image (retry until build-kaldi pushes it)
+        run: |
+          image="${{ steps.image.outputs.name }}"
+          for i in $(seq 1 30); do
+            if docker pull "$image"; then
+              echo "Pulled $image on attempt $i"; exit 0
+            fi
+            echo "Attempt $i: $image not ready yet, retrying in 20s..."
+            sleep 20
+          done
+          echo "ERROR: could not pull $image"; exit 1
+
+      # Runs inside the kaldi container. Installs the CPU-only build of torch
+      # plus onnx/onnxruntime into a venv (the Debian 12 base is PEP 668
+      # "externally managed", so a venv avoids pip refusing system installs),
+      # then exercises basic functionality of each package. The quoted heredoc
+      # (<<'...') is passed verbatim to `bash -s` in the container.
+      - name: Install torch (CPU) + onnx + onnxruntime and test them
+        run: |
+          docker run --rm -i ${{ steps.image.outputs.name }} bash -s <<'KALDI_TORCH'
+            set -u
+
+            echo "################ PYTHON ################"
+            echo "==== python3 ===="
+            python3 --version
+            which python3
+
+            echo
+            echo "################ INSTALL ################"
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y --no-install-recommends python3-pip python3-venv
+
+            python3 -m venv /opt/venv
+            . /opt/venv/bin/activate
+            python -m pip install --upgrade pip
+
+            function retry() {
+              $* || (sleep 2 && $*) || (sleep 4 && $*) || (sleep 8 && $*)
+            }
+
+            echo "==== installing torch (CPU wheel) ===="
+            retry pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+            echo
+            echo "==== installing onnx + onnxruntime ===="
+            retry pip install onnx onnxruntime
+
+            echo
+            echo "==== installed versions ===="
+            pip list | grep -Ei '^(torch|onnx|onnxruntime|numpy) '
+
+            echo
+            echo "################ TORCH TESTS ################"
+            python - <<'PY'
+          import torch
+
+          print("torch version:", torch.__version__)
+          print("torch file:    ", torch.__file__)
+
+          # CPU build: no CUDA compiled in, and no CUDA device visible.
+          assert torch.version.cuda is None, f"expected a CPU build, got cuda {torch.version.cuda}"
+          assert not torch.cuda.is_available(), "expected no CUDA device"
+          print("OK      torch is a CPU build")
+
+          # Basic tensor arithmetic.
+          a = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+          b = torch.tensor([[5.0, 6.0], [7.0, 8.0]])
+          c = a + b
+          assert torch.equal(c, torch.tensor([[6.0, 8.0], [10.0, 12.0]])), c
+          m = torch.matmul(a, b)
+          assert torch.equal(m, torch.tensor([[19.0, 22.0], [43.0, 50.0]])), m
+          assert torch.allclose(torch.nn.functional.relu(torch.tensor([-1.0, 2.0])),
+                                torch.tensor([0.0, 2.0]))
+          print("OK      tensor arithmetic (add / matmul / relu)")
+
+          # Autograd.
+          x = torch.tensor([2.0, 3.0], requires_grad=True)
+          y = (x ** 2).sum()
+          y.backward()
+          assert torch.allclose(x.grad, torch.tensor([4.0, 6.0])), x.grad
+          print("OK      autograd backward")
+
+          # nn.Module forward pass.
+          torch.manual_seed(0)
+          net = torch.nn.Linear(4, 3)
+          out = net(torch.randn(2, 4))
+          assert out.shape == (2, 3), out.shape
+          assert not torch.isnan(out).any()
+          print("OK      nn.Linear forward")
+
+          # Save / load round trip.
+          torch.save(a, "/tmp/a.pt")
+          a2 = torch.load("/tmp/a.pt", weights_only=True)
+          assert torch.equal(a, a2)
+          print("OK      torch.save / torch.load round trip")
+
+          print("TORCH TESTS PASSED")
+          PY
+
+            echo
+            echo "################ ONNX TESTS ################"
+            python - <<'PY'
+          import numpy as np
+          import onnx
+          from onnx import TensorProto, helper, checker, shape_inference
+
+          print("onnx version:", onnx.__version__)
+          print("onnx file:   ", onnx.__file__)
+
+          # Build a tiny model: Y = A * X + B  (Gemm)
+          X = helper.make_tensor_value_info("X", TensorProto.FLOAT, [1, 2])
+          Y = helper.make_tensor_value_info("Y", TensorProto.FLOAT, [1, 2])
+          A = helper.make_tensor("A", TensorProto.FLOAT, [2, 2], [1.0, 2.0, 3.0, 4.0])
+          B = helper.make_tensor("B", TensorProto.FLOAT, [2], [0.5, -0.5])
+          node = helper.make_node("Gemm", ["X", "A", "B"], ["Y"])
+          graph = helper.make_graph([node], "tiny-gemm", [X], [Y], initializer=[A, B])
+          model = helper.make_model(
+              graph, producer_name="test-kaldi-torch", opset_imports=[helper.make_opsetid("", 17)]
+          )
+
+          checker.check_model(model)
+          print("OK      onnx.checker.check_model")
+
+          # Check model versioning + shape inference.
+          inferred = shape_inference.infer_shapes(model)
+          assert inferred is not None
+          print("OK      onnx.shape_inference.infer_shapes")
+
+          # Save / load round trip, including protobuf serialization.
+          path = "/tmp/tiny.onnx"
+          onnx.save(model, path)
+          loaded = onnx.load(path)
+          assert loaded.graph.node[0].op_type == "Gemm"
+          print("OK      onnx.save / onnx.load round trip")
+
+          # Proto-level API sanity: serialize and re-parse the raw bytes.
+          blob = loaded.SerializeToString()
+          reparsed = onnx.load_model_from_string(blob)
+          assert reparsed.graph.node[0].op_type == "Gemm"
+          print("OK      ModelProto serialize / parse round trip")
+
+          print("ONNX TESTS PASSED")
+          PY
+
+            echo
+            echo "################ ONNXRUNTIME TESTS ################"
+            python - <<'PY'
+          import numpy as np
+          import onnx
+          import onnxruntime as ort
+
+          print("onnxruntime version:", ort.__version__)
+          print("onnxruntime file:   ", ort.__file__)
+          print("available providers:", ort.get_available_providers())
+
+          assert "CPUExecutionProvider" in ort.get_available_providers()
+          print("OK      CPUExecutionProvider available")
+
+          # Reuse the model produced by the onnx test above.
+          sess = ort.InferenceSession("/tmp/tiny.onnx", providers=["CPUExecutionProvider"])
+          assert sess.get_providers() == ["CPUExecutionProvider"]
+
+          x = np.array([[1.0, 2.0]], dtype=np.float32)
+          # Y = X @ A + B with A = [[1,2],[3,4]], B = [0.5, -0.5]
+          expected = x @ np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32) \
+                      + np.array([0.5, -0.5], dtype=np.float32)
+
+          y = sess.run(["Y"], {"X": x})[0]
+          assert y.shape == expected.shape, (y.shape, expected.shape)
+          assert np.allclose(y, expected), (y, expected)
+          print("OK      onnxruntime inference matches numpy reference")
+          print("Y =", y)
+
+          # Metadata / IO inspection APIs.
+          inputs = sess.get_inputs()
+          outputs = sess.get_outputs()
+          assert inputs[0].name == "X" and inputs[0].shape == [1, 2]
+          assert outputs[0].name == "Y"
+          print("OK      session input/output inspection")
+
+          print("ONNXRUNTIME TESTS PASSED")
+          PY
+
+            echo
+            echo "################ SANITY ################"
+            fail=0
+            for m in torch onnx onnxruntime; do
+              if /opt/venv/bin/python -c "import $m" 2>/dev/null; then
+                echo "OK      import $m"
+              else
+                echo "MISSING import $m"
+                fail=1
+              fi
+            done
+
+            echo
+            if [ "$fail" -eq 0 ]; then
+              echo "TORCH/ONNX INSTALL AND TESTS COMPLETE — all checks passed"
+            else
+              echo "TORCH/ONNX INSTALL AND TESTS COMPLETE — BUT SOME CHECKS FAILED"
+              exit 1
+            fi
+          KALDI_TORCH
