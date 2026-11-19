@@ -6,8 +6,9 @@ Notes describing the contents of the container image built by this repo.
 - **Built from:** [`kaldi/Dockerfile`](./Dockerfile), which is `FROM kaldiasr/kaldi:latest`
   (the official CPU image, built upstream from Kaldi's `docker/debian12-cpu`).
 - **How this inventory was captured:** the [`test-kaldi`](../.github/workflows/test-kaldi.yaml)
-  workflow runs the image and dumps every binary / library / header it ships.
-  Measured in GitHub Actions run `44493742888`, job `135455593638`, on **2026-11-19**.
+  workflow runs the image and dumps every binary / library / header it ships, plus the
+  Kaldi git commit and a `--help` smoke run. Measured in GitHub Actions run `44498496120`,
+  job `135471748056`, on **2026-11-19**.
 - **Cross-reference:** the same source tree is checked out at `../kaldi`; the image is
   essentially that tree built on Linux (locally it is a macOS build with `.dylib`,
   in Docker a Linux build with `.so`).
@@ -18,13 +19,27 @@ Notes describing the contents of the container image built by this repo.
 |------|-------|
 | Base OS | Debian 12 (from `kaldiasr/kaldi` CPU image) |
 | Arch | linux/amd64 (x86-64) |
-| Kaldi location | `/opt/kaldi` (a git checkout; tree dated 2025-07-28) |
+| Kaldi location | `/opt/kaldi` (git checkout of `kaldi-asr/kaldi` @ `f400766`, 2025-07-22) |
 | Build config | `./configure --shared --mathlib=OPENBLAS` → shared libs + OpenBLAS |
 | Working dir | `/opt/kaldi` |
 
 `/opt/kaldi` top level: `cmake/`, `docker/`, `egs/` (~105 example recipes), `misc/`,
 `scripts/`, `src/`, `tools/`, `windows/`, plus `CMakeLists.txt`, `COPYING`, `INSTALL`,
 `README.md`.
+
+## Kaldi source commit (what the image was built from)
+
+`/opt/kaldi` is a git checkout of [kaldi-asr/kaldi](https://github.com/kaldi-asr/kaldi).
+Its latest commit — i.e. the exact Kaldi version baked into the image:
+
+| Field | Value |
+|-------|-------|
+| Commit | `f4007661023b98b8081fd875029f0dee62242fd1` (short `f400766`) |
+| Branch | `master` |
+| Author | Daniel Povey |
+| Date | 2025-07-22 |
+| Subject | Merge PR #4974 — *Updated Phonetisaurus install script to a working repository* |
+| Remote | `https://github.com/kaldi-asr/kaldi.git` |
 
 ## Binaries — ~480 Kaldi command-line tools
 
@@ -107,6 +122,22 @@ prepends them so tools run by name:
 
 Verified on `PATH`: `compute-mfcc-feats` → `src/featbin/`, `copy-feats` → `src/featbin/`,
 `fstcompile` → `tools/openfst/bin/`.
+
+## Smoke test — tools actually run
+
+Beyond existing on `PATH`, the test invokes each tool with `--help` to prove the binaries
+execute (dynamic linking + openfst OK), not just exist. Usage printed correctly for all:
+
+| Tool | Module | Usage synopsis |
+|------|--------|----------------|
+| `compute-mfcc-feats` | featbin | `compute-mfcc-feats [options] <wav-rspecifier> <feats-wspecifier>` |
+| `copy-feats` | featbin | `copy-feats [options] <feature-rspecifier> <feature-wspecifier>` |
+| `gmm-info` | gmmbin | `gmm-info [options] <model-in>` |
+| `lattice-best-path` | latbin | `lattice-best-path [options] <lattice-rspecifier> [...]` |
+| `nnet3-info` | nnet3bin | `nnet3-info [options] <raw-nnet>` |
+| `ivector-compute-plda` | ivectorbin | `ivector-compute-plda [options] <spk2utt> <ivector> <plda-out>` |
+| `align-text` | bin | `align-text [options] <text1> <text2> <alignment>` |
+| `fstcompile` | openfst | `fstcompile [text.fst [binary.fst]]` |
 
 ## Sanity status (from the test run)
 
