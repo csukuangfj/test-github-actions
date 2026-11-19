@@ -3,7 +3,7 @@ name: test-kaldi
 on:
   push:
     branches:
-      - kaldi-docker
+      - kaldi-docker-2
   workflow_dispatch:
 
 jobs:
